@@ -6,3 +6,11 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+/* Optional CSS for the highlight toggle icon */
+.highlight-toggle-icon {
+    cursor: pointer;
+}
+
+.highlight-toggle-icon.is-disabled {
+    opacity: 0.5;
+}
