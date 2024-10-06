@@ -2,21 +2,19 @@
 
 import {EditorView, Decoration, DecorationSet, ViewUpdate, ViewPlugin} from '@codemirror/view';
 import {RangeSetBuilder} from '@codemirror/state';
-import type HighlightOccurrencesPlugin from 'main';
+import type OccuraPlugin from 'main';
 
 // Create a decoration for highlighting
-export const highlightDecoration = Decoration.mark({class: 'found-highlight'});
-let iCount = 0;
-// View plugin to handle highlighting occurrences
-export function createHighlightPlugin(plugin: HighlightOccurrencesPlugin) {
-    const statusBarItemEl = plugin.addStatusBarItem();
+export const highlightDecoration = Decoration.mark({class: 'found-occurrence'});
+let iFoundOccurCount = 0;
+export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
     return ViewPlugin.fromClass(
         class {
             decorations: DecorationSet;
             lastEnabledState: boolean;
 
             constructor(public view: EditorView) {
-                this.lastEnabledState = plugin.settings.highlightEnabled;
+                this.lastEnabledState = plugin.settings.occuraPluginEnabled;
                 this.decorations = this.createDecorations();
             }
 
@@ -25,16 +23,16 @@ export function createHighlightPlugin(plugin: HighlightOccurrencesPlugin) {
                     update.selectionSet ||
                     update.docChanged ||
                     update.viewportChanged ||
-                    plugin.settings.highlightEnabled !== this.lastEnabledState
+                    plugin.settings.occuraPluginEnabled !== this.lastEnabledState
                 ) {
                     this.decorations = this.createDecorations();
                 }
             }
 
             createDecorations() {
-                this.lastEnabledState = plugin.settings.highlightEnabled;
+                this.lastEnabledState = plugin.settings.occuraPluginEnabled;
 
-                if (!plugin.settings.highlightEnabled) {
+                if (!plugin.settings.occuraPluginEnabled) {
                     return Decoration.none;
                 }
 
@@ -48,7 +46,7 @@ export function createHighlightPlugin(plugin: HighlightOccurrencesPlugin) {
 
                 // Return empty decorations if selection is whitespace or empty
                 if (!selectedText || /\s/.test(selectedText)) return Decoration.none;
-                iCount = 0;
+                iFoundOccurCount = 0;
                 const builder = new RangeSetBuilder<Decoration>();
                 const regex = new RegExp(selectedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
 
@@ -59,10 +57,12 @@ export function createHighlightPlugin(plugin: HighlightOccurrencesPlugin) {
                         const start = from + match.index;
                         const end = start + match[0].length;
                         builder.add(start, end, highlightDecoration);
-                        iCount++;
+                        iFoundOccurCount++;
                     }
                 }
-                statusBarItemEl.setText(`${selectedText} found: ` + iCount);
+                if (plugin.statusBarOccurrencesNumber){
+                    plugin.statusBarOccurrencesNumber.setText(`Occura found: ${selectedText} ` + iFoundOccurCount+' times');
+                }
                 return builder.finish();
             }
         },

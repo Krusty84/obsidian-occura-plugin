@@ -1,25 +1,29 @@
 // settings.ts
 
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import type HighlightOccurrencesPlugin from './main';
+import type OccuraPlugin from 'main';
 
 // Define the settings interface
-export interface HighlightOccurrencesSettings {
-    highlightColor: string;
-    highlightEnabled: boolean;
+export interface OccuraPluginSettings {
+    highlightColorOccurrences: string;
+    occuraPluginEnabled: boolean;
+    occuraPluginEnabledHotKey:string;
+    statusBarOccurrencesNumberEnabled: boolean;
 }
 
 // Set default settings
-export const DEFAULT_SETTINGS: HighlightOccurrencesSettings = {
-    highlightColor: '#FFFF00', // Default highlight color (yellow)
-    highlightEnabled: true,     // Highlighting is enabled by default
+export const DEFAULT_SETTINGS: OccuraPluginSettings = {
+    highlightColorOccurrences: '#FFFF00', // Default highlight color (yellow)
+    occuraPluginEnabled: true,
+    occuraPluginEnabledHotKey:'',
+    statusBarOccurrencesNumberEnabled: true,
 };
 
 // Settings tab for the plugin
-export class HighlightOccurrencesSettingTab extends PluginSettingTab {
-    plugin: HighlightOccurrencesPlugin;
+export class OccuraPluginSettingTab extends PluginSettingTab {
+    plugin: OccuraPlugin;
 
-    constructor(app: App, plugin: HighlightOccurrencesPlugin) {
+    constructor(app: App, plugin: OccuraPlugin) {
         super(app, plugin);
         this.plugin = plugin;
     }
@@ -35,15 +39,15 @@ export class HighlightOccurrencesSettingTab extends PluginSettingTab {
             .addText(text => {
                 text.inputEl.type = 'color';
                 text
-                    .setValue(this.plugin.settings.highlightColor)
+                    .setValue(this.plugin.settings.highlightColorOccurrences)
                     .onChange(async (value) => {
-                        this.plugin.settings.highlightColor = value;
+                        this.plugin.settings.highlightColorOccurrences = value;
                         await this.plugin.saveSettings();
                         this.plugin.updateHighlightStyle();
                     });
             });
 
-        new Setting(containerEl)
+    /*    new Setting(containerEl)
             .setName('Enable Highlighting')
             .setDesc('Enable or disable highlighting of occurrences.')
             .addToggle(toggle => {
@@ -55,6 +59,33 @@ export class HighlightOccurrencesSettingTab extends PluginSettingTab {
                         // Force the editor to re-render
                         this.plugin.updateEditors();
                     });
+            });*/
+        new Setting(containerEl)
+            .setName('Hotkey')
+            .setDesc('Set the hotkey for Toggle Highlight Occurrences')
+            .addText(text => {
+                text
+                    .setPlaceholder('Mod+Shift+H')
+                    .setValue(this.plugin.settings.occuraPluginEnabledHotKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.occuraPluginEnabledHotKey = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.updateKeyHandler();
+                    });
             });
+
+        new Setting(containerEl)
+            .setName('Display the number of occurrences')
+            .setDesc('Display the number of occurrences found in the Status bar')
+            .addToggle(toggle => {
+                toggle
+                    .setValue(this.plugin.settings.statusBarOccurrencesNumberEnabled)
+                    .onChange(async (value) => {
+                        this.plugin.settings.statusBarOccurrencesNumberEnabled = value;
+                        await this.plugin.saveSettings();
+                        // Force the editor to re-render
+                        this.plugin.updateEditors();
+                    });
+            })
     }
 }

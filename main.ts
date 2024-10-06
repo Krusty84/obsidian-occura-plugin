@@ -1,15 +1,16 @@
-import { App, Plugin, MarkdownView, Notice, WorkspaceLeaf, setIcon } from 'obsidian';
-import { Compartment } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
-import {HighlightOccurrencesSettingTab, HighlightOccurrencesSettings, DEFAULT_SETTINGS} from 'src/settings'
-import {createHighlightPlugin} from 'src/highlighter'
+import {App, Plugin, MarkdownView, Notice, WorkspaceLeaf, setIcon, Keymap} from 'obsidian';
+import {Compartment} from '@codemirror/state';
+import {EditorView} from '@codemirror/view';
+import {OccuraPluginSettingTab, OccuraPluginSettings, DEFAULT_SETTINGS} from 'src/settings'
+import {highlightOccurrenceExtension} from 'src/highlighter'
+import {parseHotkeyString} from 'src/utils'
 
-
-export default class HighlightOccurrencesPlugin extends Plugin {
-    settings: HighlightOccurrencesSettings;
+export default class OccuraPlugin extends Plugin {
+    settings: OccuraPluginSettings;
     styleEl: HTMLStyleElement;
     highlightCompartment: Compartment;
-
+    statusBarOccurrencesNumber: any;
+    keyHandler: (evt: KeyboardEvent) => void;
     async onload() {
         await this.loadSettings();
 
@@ -17,10 +18,10 @@ export default class HighlightOccurrencesPlugin extends Plugin {
         this.highlightCompartment = new Compartment();
 
         // Add the settings tab
-        this.addSettingTab(new HighlightOccurrencesSettingTab(this.app, this));
+        this.addSettingTab(new OccuraPluginSettingTab(this.app, this));
 
         // Register the editor extension with the compartment
-        this.registerEditorExtension(this.highlightCompartment.of(createHighlightPlugin(this)));
+        this.registerEditorExtension(this.highlightCompartment.of(highlightOccurrenceExtension(this)));
 
         // Register click event to clear selection when clicking outside
         this.registerDomEvent(document, 'click', this.handleDocumentClick.bind(this));
@@ -29,12 +30,18 @@ export default class HighlightOccurrencesPlugin extends Plugin {
         this.updateHighlightStyle();
 
         // Register command to toggle highlighting
-        this.addCommand({
+     this.addCommand({
             id: 'toggle-highlight-occurrences',
             name: 'Toggle Highlight Occurrences',
             callback: () => {
                 this.toggleHighlighting();
             },
+            hotkeys: [
+                {
+                    modifiers: ["Mod", "Shift"],
+                    key: "H"
+                }
+            ]
         });
 
         // Add icon to the editor title bar when a new leaf is created
@@ -46,9 +53,39 @@ export default class HighlightOccurrencesPlugin extends Plugin {
 
         // Initial addition of the icon to all leaves
         this.addIconsToAllLeaves();
-
+        // Initialize the key handler
+        this.updateKeyHandler();
     }
 
+    updateKeyHandler() {
+        if (this.keyHandler) {
+            window.removeEventListener('keydown', this.keyHandler, true);
+        }
+
+        const hotkey = parseHotkeyString(this.settings.occuraPluginEnabledHotKey);
+
+        this.keyHandler = (evt: KeyboardEvent) => {
+            const evtKey = evt.key.toUpperCase();
+
+            // Normalize special keys (e.g., "ArrowUp" -> "UP")
+            const normalizedKey = evtKey.replace('ARROW', '');
+
+            const modifiersMatch =
+                evt.ctrlKey === hotkey.modifiers.ctrlKey &&
+                evt.shiftKey === hotkey.modifiers.shiftKey &&
+                evt.altKey === hotkey.modifiers.altKey &&
+                evt.metaKey === hotkey.modifiers.metaKey;
+
+            if (modifiersMatch && normalizedKey === hotkey.key) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                this.toggleHighlighting();
+                return false;
+            }
+        };
+
+        window.addEventListener('keydown', this.keyHandler, true);
+    }
     async loadSettings() {
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
     }
@@ -59,14 +96,14 @@ export default class HighlightOccurrencesPlugin extends Plugin {
 
     // Toggle highlighting functionality
     toggleHighlighting() {
-        this.settings.highlightEnabled = !this.settings.highlightEnabled;
+        this.settings.occuraPluginEnabled = !this.settings.occuraPluginEnabled;
         this.saveSettings();
         // Force the editor to re-render
         this.updateEditors();
         // Update the icon in the title bar
         this.updateAllTitleBarIcons();
         // Optional: Show a notice
-        new Notice(`Highlighting ${this.settings.highlightEnabled ? 'enabled' : 'disabled'}`);
+        //new Notice(`Occura ${this.settings.highlightEnabled ? 'enabled' : 'disabled'}`);
     }
 
     // Clear selection when clicking outside the editor
@@ -86,8 +123,7 @@ export default class HighlightOccurrencesPlugin extends Plugin {
             this.styleEl.remove();
         }
         this.styleEl = document.createElement('style');
-        this.styleEl.textContent = `.found-highlight {background-color: ${this.settings.highlightColor};}
-    `;
+        this.styleEl.textContent = `.found-occurrence {background-color: ${this.settings.highlightColorOccurrences};}`;
         document.head.appendChild(this.styleEl);
     }
 
@@ -96,15 +132,13 @@ export default class HighlightOccurrencesPlugin extends Plugin {
         const markdownViews = this.app.workspace.getLeavesOfType('markdown')
             .map(leaf => leaf.view)
             .filter(view => view instanceof MarkdownView) as MarkdownView[];
-
         for (const view of markdownViews) {
             // Get the CodeMirror EditorView instance
             const editorView = (view.editor as any).cm as EditorView;
-
             if (editorView) {
                 // Reconfigure the compartment with the updated plugin
                 editorView.dispatch({
-                    effects: this.highlightCompartment.reconfigure(createHighlightPlugin(this))
+                    effects: this.highlightCompartment.reconfigure(highlightOccurrenceExtension(this))
                 });
             }
         }
@@ -121,9 +155,7 @@ export default class HighlightOccurrencesPlugin extends Plugin {
     // Add an icon to the editor's title bar
     addTitleBarIcon(leaf: WorkspaceLeaf) {
         if (!(leaf.view instanceof MarkdownView)) return;
-
         const view = leaf.view as MarkdownView;
-
         // Remove existing icon if any
         const existingIcon = view.containerEl.querySelector('.highlight-toggle-icon');
         if (existingIcon) {
@@ -166,10 +198,16 @@ export default class HighlightOccurrencesPlugin extends Plugin {
         // Remove existing icon classes
         iconEl.empty();
         // Add appropriate icon
-        if (this.settings.highlightEnabled) {
+        if (this.settings.occuraPluginEnabled) {
+            this.statusBarOccurrencesNumber = this.addStatusBarItem();
             iconEl.setAttribute('aria-label', 'Disable Highlighting');
             setIcon(iconEl, 'highlighter');
+            iconEl.style.opacity = '1';
         } else {
+            if (this.statusBarOccurrencesNumber){
+                this.statusBarOccurrencesNumber.remove();  // Removes the element from the DOM
+                this.statusBarOccurrencesNumber = null;    // Cleans up the reference
+            }
             iconEl.setAttribute('aria-label', 'Enable Highlighting');
             setIcon(iconEl, 'highlighter');
             // Apply a disabled style
@@ -178,6 +216,7 @@ export default class HighlightOccurrencesPlugin extends Plugin {
     }
 
     onunload() {
+        window.removeEventListener('keydown', this.keyHandler, true);
         // Clean up the style element when the plugin is unloaded
         if (this.styleEl) {
             this.styleEl.remove();
