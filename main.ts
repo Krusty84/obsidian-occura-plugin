@@ -11,6 +11,7 @@ export default class OccuraPlugin extends Plugin {
     highlightCompartment: Compartment;
     statusBarOccurrencesNumber: any;
     keyHandler: (evt: KeyboardEvent) => void;
+
     async onload() {
         await this.loadSettings();
 
@@ -30,7 +31,7 @@ export default class OccuraPlugin extends Plugin {
         this.updateHighlightStyle();
 
         // Register command to toggle highlighting
-     this.addCommand({
+        this.addCommand({
             id: 'toggle-highlight-occurrences',
             name: 'Toggle Highlight Occurrences',
             callback: () => {
@@ -86,6 +87,7 @@ export default class OccuraPlugin extends Plugin {
 
         window.addEventListener('keydown', this.keyHandler, true);
     }
+
     async loadSettings() {
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
     }
@@ -204,7 +206,7 @@ export default class OccuraPlugin extends Plugin {
             setIcon(iconEl, 'highlighter');
             iconEl.style.opacity = '1';
         } else {
-            if (this.statusBarOccurrencesNumber){
+            if (this.statusBarOccurrencesNumber) {
                 this.statusBarOccurrencesNumber.remove();  // Removes the element from the DOM
                 this.statusBarOccurrencesNumber = null;    // Cleans up the reference
             }

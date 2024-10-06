@@ -1,8 +1,8 @@
 {
-  "highlightColorOccurrences": "#FFFF00",
-  "occuraPluginEnabled": false,
+  "highlightColorOccurrences": "#f00098",
+  "occuraPluginEnabled": true,
   "occuraPluginEnabledHotKey": "Shift+Alt+´",
-  "statusBarOccurrencesNumberEnabled": false,
+  "statusBarOccurrencesNumberEnabled": true,
   "highlightColor": "#ca98dc",
   "highlightEnabled": true,
   "statusBar": true

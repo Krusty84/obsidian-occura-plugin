@@ -7,6 +7,7 @@ import type OccuraPlugin from 'main';
 // Create a decoration for highlighting
 export const highlightDecoration = Decoration.mark({class: 'found-occurrence'});
 let iFoundOccurCount = 0;
+
 export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
     return ViewPlugin.fromClass(
         class {
@@ -40,12 +41,20 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
                 const selection = state.selection.main;
 
                 // Return empty decorations if no selection or selection is empty
-                if (selection.empty) return Decoration.none;
+                if (selection.empty) {
+                    if (plugin.statusBarOccurrencesNumber) {
+                        if (plugin.settings.statusBarOccurrencesNumberEnabled)
+                            plugin.statusBarOccurrencesNumber.setText("");
+                    }
+                    return Decoration.none;
+                }
 
                 const selectedText = state.doc.sliceString(selection.from, selection.to).trim();
 
                 // Return empty decorations if selection is whitespace or empty
-                if (!selectedText || /\s/.test(selectedText)) return Decoration.none;
+                if (!selectedText || /\s/.test(selectedText)) {
+                    return Decoration.none;
+                }
                 iFoundOccurCount = 0;
                 const builder = new RangeSetBuilder<Decoration>();
                 const regex = new RegExp(selectedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
@@ -60,8 +69,9 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
                         iFoundOccurCount++;
                     }
                 }
-                if (plugin.statusBarOccurrencesNumber){
-                    plugin.statusBarOccurrencesNumber.setText(`Occura found: ${selectedText} ` + iFoundOccurCount+' times');
+                if (plugin.statusBarOccurrencesNumber) {
+                    if (plugin.settings.statusBarOccurrencesNumberEnabled)
+                        plugin.statusBarOccurrencesNumber.setText(`Occura found: ${selectedText} ` + iFoundOccurCount + ' times');
                 }
                 return builder.finish();
             }
