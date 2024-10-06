@@ -47,31 +47,39 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
                     });
             });
 
-    /*    new Setting(containerEl)
-            .setName('Enable Highlighting')
-            .setDesc('Enable or disable highlighting of occurrences.')
-            .addToggle(toggle => {
-                toggle
-                    .setValue(this.plugin.settings.highlightEnabled)
-                    .onChange(async (value) => {
-                        this.plugin.settings.highlightEnabled = value;
-                        await this.plugin.saveSettings();
-                        // Force the editor to re-render
-                        this.plugin.updateEditors();
-                    });
-            });*/
         new Setting(containerEl)
             .setName('Hotkey')
-            .setDesc('Set the hotkey for Toggle Highlight Occurrences')
+            .setDesc('Click and press the desired hotkey combination')
             .addText(text => {
                 text
-                    .setPlaceholder('Mod+Shift+H')
-                    .setValue(this.plugin.settings.occuraPluginEnabledHotKey)
-                    .onChange(async (value) => {
-                        this.plugin.settings.occuraPluginEnabledHotKey = value;
-                        await this.plugin.saveSettings();
-                        this.plugin.updateKeyHandler();
-                    });
+                    .setPlaceholder('Click and press hotkey')
+                    .setValue(this.plugin.settings.occuraPluginEnabledHotKey);
+
+                // Add focus event listener to clear the input when focused
+                text.inputEl.addEventListener('focus', () => {
+                    text.inputEl.value = '';
+                });
+
+                // Add blur event listener to restore the hotkey if input is empty
+                text.inputEl.addEventListener('blur', () => {
+                    if (!text.inputEl.value) {
+                        text.setValue(this.plugin.settings.occuraPluginEnabledHotKey);
+                    }
+                });
+
+                // Add keydown listener to capture hotkey
+                text.inputEl.addEventListener('keydown', async (event: KeyboardEvent) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const hotkey = this.captureHotkey(event);
+                    text.setValue(hotkey);
+
+                    // Update plugin settings
+                    this.plugin.settings.occuraPluginEnabledHotKey = hotkey;
+                    await this.plugin.saveSettings();
+                    this.plugin.updateKeyHandler();
+                });
             });
 
         new Setting(containerEl)
@@ -87,5 +95,23 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
                         this.plugin.updateEditors();
                     });
             })
+    }
+
+    // Helper method to capture hotkey from event
+    captureHotkey(event: KeyboardEvent): string {
+        const keys = [];
+
+        if (event.ctrlKey || event.metaKey) keys.push('Mod');
+        if (event.shiftKey) keys.push('Shift');
+        if (event.altKey) keys.push('Alt');
+
+        const key = event.key.toUpperCase();
+
+        // Exclude modifier keys themselves
+        if (!['CONTROL', 'SHIFT', 'ALT', 'META'].includes(key)) {
+            keys.push(key);
+        }
+
+        return keys.join('+');
     }
 }
