@@ -34,7 +34,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
         containerEl.empty();
 
         new Setting(containerEl)
-            .setName('Highlight Color')
+            .setName('Highlight color')
             .setDesc('Set the color used to highlight occurrences.')
             .addText(text => {
                 text.inputEl.type = 'color';

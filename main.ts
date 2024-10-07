@@ -37,12 +37,7 @@ export default class OccuraPlugin extends Plugin {
             callback: () => {
                 this.toggleHighlighting();
             },
-            hotkeys: [
-                {
-                    modifiers: ["Mod", "Shift"],
-                    key: "H"
-                }
-            ]
+            hotkeys: []
         });
 
         // Add icon to the editor title bar when a new leaf is created
@@ -105,7 +100,7 @@ export default class OccuraPlugin extends Plugin {
         // Update the icon in the title bar
         this.updateAllTitleBarIcons();
         // Optional: Show a notice
-        //new Notice(`Occura ${this.settings.highlightEnabled ? 'enabled' : 'disabled'}`);
+        //new Notice(`Occura ${this.settings.occuraPluginEnabled ? 'enabled' : 'disabled'}`);
     }
 
     // Clear selection when clicking outside the editor
@@ -202,7 +197,7 @@ export default class OccuraPlugin extends Plugin {
         // Add appropriate icon
         if (this.settings.occuraPluginEnabled) {
             this.statusBarOccurrencesNumber = this.addStatusBarItem();
-            iconEl.setAttribute('aria-label', 'Disable Highlighting');
+            iconEl.setAttribute('aria-label', 'Disable highlighting');
             setIcon(iconEl, 'highlighter');
             iconEl.style.opacity = '1';
         } else {
@@ -210,7 +205,7 @@ export default class OccuraPlugin extends Plugin {
                 this.statusBarOccurrencesNumber.remove();  // Removes the element from the DOM
                 this.statusBarOccurrencesNumber = null;    // Cleans up the reference
             }
-            iconEl.setAttribute('aria-label', 'Enable Highlighting');
+            iconEl.setAttribute('aria-label', 'Enable highlighting');
             setIcon(iconEl, 'highlighter');
             // Apply a disabled style
             iconEl.style.opacity = '0.5';
@@ -223,7 +218,6 @@ export default class OccuraPlugin extends Plugin {
         if (this.styleEl) {
             this.styleEl.remove();
         }
-
         // Remove the icon from all title bars
         const icons = document.querySelectorAll('.highlight-toggle-icon');
         icons.forEach(icon => icon.remove());
