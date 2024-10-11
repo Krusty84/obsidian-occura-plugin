@@ -36,8 +36,7 @@ export default class OccuraPlugin extends Plugin {
             name: 'Toggle Highlight Occurrences',
             callback: () => {
                 this.toggleHighlighting();
-            },
-            hotkeys: []
+            }
         });
 
         // Add icon to the editor title bar when a new leaf is created
@@ -194,21 +193,19 @@ export default class OccuraPlugin extends Plugin {
     updateIconElement(iconEl: HTMLElement) {
         // Remove existing icon classes
         iconEl.empty();
+        setIcon(iconEl, 'highlighter');
         // Add appropriate icon
         if (this.settings.occuraPluginEnabled) {
             this.statusBarOccurrencesNumber = this.addStatusBarItem();
-            iconEl.setAttribute('aria-label', 'Disable highlighting');
-            setIcon(iconEl, 'highlighter');
-            iconEl.style.opacity = '1';
+            iconEl.setAttribute('aria-label', 'Disable Highlighting');
+            iconEl.removeClass('is-disabled');
         } else {
             if (this.statusBarOccurrencesNumber) {
                 this.statusBarOccurrencesNumber.remove();  // Removes the element from the DOM
                 this.statusBarOccurrencesNumber = null;    // Cleans up the reference
             }
-            iconEl.setAttribute('aria-label', 'Enable highlighting');
-            setIcon(iconEl, 'highlighter');
-            // Apply a disabled style
-            iconEl.style.opacity = '0.5';
+            iconEl.setAttribute('aria-label', 'Enable Highlighting');
+            iconEl.addClass('is-disabled');
         }
     }
 

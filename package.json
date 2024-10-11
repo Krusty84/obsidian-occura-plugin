@@ -1,7 +1,7 @@
 {
 	"name": "occura-plugin",
 	"version": "1.0.0",
-	"description": "THighlighting all occurrences of the selected word, similar to Notepad++ or any IDE.",
+	"description": "Highlighting all occurrences of the selected word, similar to Notepad++ or any IDE.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
