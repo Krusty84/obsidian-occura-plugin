@@ -1,4 +1,4 @@
-import {App, Plugin, MarkdownView, Notice, WorkspaceLeaf, setIcon, Keymap} from 'obsidian';
+import {App, Plugin, MarkdownView, Notice, WorkspaceLeaf, setIcon, Keymap, setTooltip} from 'obsidian';
 import {Compartment} from '@codemirror/state';
 import {EditorView} from '@codemirror/view';
 import {OccuraPluginSettingTab, OccuraPluginSettings, DEFAULT_SETTINGS} from 'src/settings'
@@ -33,7 +33,7 @@ export default class OccuraPlugin extends Plugin {
         // Register command to toggle highlighting
         this.addCommand({
             id: 'toggle-highlight-occurrences',
-            name: 'Toggle Highlight Occurrences',
+            name: 'Toggle highlight occurrences',
             callback: () => {
                 this.toggleHighlighting();
             }
@@ -194,17 +194,18 @@ export default class OccuraPlugin extends Plugin {
         // Remove existing icon classes
         iconEl.empty();
         setIcon(iconEl, 'highlighter');
+
         // Add appropriate icon
         if (this.settings.occuraPluginEnabled) {
             this.statusBarOccurrencesNumber = this.addStatusBarItem();
-            iconEl.setAttribute('aria-label', 'Disable Highlighting');
+            setTooltip(iconEl, 'Disable highlighting');
             iconEl.removeClass('is-disabled');
         } else {
             if (this.statusBarOccurrencesNumber) {
-                this.statusBarOccurrencesNumber.remove();  // Removes the element from the DOM
-                this.statusBarOccurrencesNumber = null;    // Cleans up the reference
+                this.statusBarOccurrencesNumber.remove();
+                this.statusBarOccurrencesNumber = null;
             }
-            iconEl.setAttribute('aria-label', 'Enable Highlighting');
+            setTooltip(iconEl, 'Enable highlighting');
             iconEl.addClass('is-disabled');
         }
     }
