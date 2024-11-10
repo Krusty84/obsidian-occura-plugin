@@ -1,12 +1,16 @@
 {
-	"name": "occura-plugin",
+	"name": "obsidian-occura-plugin",
 	"version": "1.0.0",
 	"description": "Highlighting all occurrences of the selected word, similar to Notepad++ or any IDE.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"version": "node version-bump.mjs && git add manifest.json versions.json"
+		"version": "node version-bump.mjs && git add manifest.json versions.json",
+
+		"copy-plugin": "rsync -a --delete ./ \"/Users/doykin/_ObsidianNotes_/.obsidian/plugins/$npm_package_name/\"",
+		"dev-in-plugin": "cd \"/Users/doykin/_ObsidianNotes_/.obsidian/plugins/$npm_package_name/\" && npm run dev",
+		"dev:copy": "npm run copy-plugin && npm run dev-in-plugin"
 	},
 	"keywords": [],
 	"author": "",

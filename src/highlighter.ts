@@ -3,6 +3,7 @@
 import {EditorView, Decoration, DecorationSet, ViewUpdate, ViewPlugin} from '@codemirror/view';
 import {RangeSetBuilder} from '@codemirror/state';
 import type OccuraPlugin from 'main';
+import {MarkdownView, Notice} from "obsidian";
 
 // Create a decoration for highlighting
 export const highlightDecoration = Decoration.mark({class: 'found-occurrence'});
@@ -82,3 +83,116 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
     );
 
 }
+
+//region set/remove permanent highlighting
+export function setHighlightOccurrences(context:any) {
+    const activeView = context.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!activeView) {
+        new Notice('No active editor');
+        return;
+    }
+
+    const editor = activeView.editor;
+    const selectedText = editor.getSelection().trim();
+
+    if (!selectedText || /\s/.test(selectedText)) {
+        new Notice('Please select some text to highlight.');
+        return;
+    }
+
+    // Escape regex special characters
+    const escapedText = selectedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedText, 'g');
+
+    const docText = editor.getValue();
+    const matches: { from: number; to: number }[] = [];
+
+    let match;
+    while ((match = regex.exec(docText)) !== null) {
+        matches.push({ from: match.index, to: match.index + match[0].length });
+    }
+
+    if (matches.length === 0) {
+        new Notice('No occurrences found.');
+        return;
+    }
+
+    // Access the underlying EditorView
+    const editorView = (editor as any).cm as EditorView;
+    if (!editorView) {
+        new Notice('Cannot access the editor view.');
+        return;
+    }
+
+    // Prepare changes
+    const changes = matches.reverse().map(range => ({
+        from: range.from,
+        to: range.to,
+        insert: `==${docText.slice(range.from, range.to)}==`,
+    }));
+
+    // Apply all changes in a single transaction
+    editorView.dispatch({
+        changes,
+    });
+
+    new Notice(`Permanently highlighted ${matches.length} for ${selectedText} occurrences.`);
+}
+export function removeHighlightOccurrences(context:any) {
+    const activeView = context.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!activeView) {
+        new Notice('No active editor');
+        return;
+    }
+
+    const editor = activeView.editor;
+    const selectedText = editor.getSelection().trim();
+
+    if (!selectedText || /\s/.test(selectedText)) {
+        new Notice('Please select some text to remove highlighting from.');
+        return;
+    }
+
+    // Construct the search pattern to find ==selectedText==
+    const escapedText = selectedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = `==${escapedText}==`;
+    const regex = new RegExp(pattern, 'g');
+
+    const docText = editor.getValue();
+    const matches: { from: number; to: number }[] = [];
+
+    let match;
+    while ((match = regex.exec(docText)) !== null) {
+        matches.push({ from: match.index, to: match.index + match[0].length });
+    }
+
+    if (matches.length === 0) {
+        new Notice('No highlighted occurrences found.');
+        return;
+    }
+
+    // Access the underlying EditorView
+    const editorView = (editor as any).cm as EditorView;
+    if (!editorView) {
+        new Notice('Cannot access the editor view.');
+        return;
+    }
+
+    // Prepare changes
+    const changes = matches.reverse().map(range => {
+        const originalText = docText.slice(range.from + 2, range.to - 2); // Remove the '==' from both ends
+        return {
+            from: range.from,
+            to: range.to,
+            insert: originalText,
+        };
+    });
+
+    // Apply all changes in a single transaction
+    editorView.dispatch({
+        changes,
+    });
+
+    new Notice(`Removed highlighting from ${matches.length} occurrences of ${selectedText}.`);
+}
+//endregion

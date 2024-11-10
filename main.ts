@@ -1,8 +1,12 @@
-import {App, Plugin, MarkdownView, Notice, WorkspaceLeaf, setIcon, Keymap, setTooltip} from 'obsidian';
+import {Plugin, MarkdownView, Notice, WorkspaceLeaf, setIcon, Keymap, setTooltip} from 'obsidian';
 import {Compartment} from '@codemirror/state';
 import {EditorView} from '@codemirror/view';
 import {OccuraPluginSettingTab, OccuraPluginSettings, DEFAULT_SETTINGS} from 'src/settings'
-import {highlightOccurrenceExtension} from 'src/highlighter'
+import {
+    highlightOccurrenceExtension,
+    setHighlightOccurrences,
+    removeHighlightOccurrences
+} from 'src/highlighter'
 import {parseHotkeyString} from 'src/utils'
 
 export default class OccuraPlugin extends Plugin {
@@ -37,6 +41,30 @@ export default class OccuraPlugin extends Plugin {
             callback: () => {
                 this.toggleHighlighting();
             }
+        });
+
+        this.addCommand({
+            id: 'set-permanent-highlight-occurrences',
+            name: 'Set permanently highlight for occurrences',
+            callback: () => {
+                if(this.settings.occuraPluginEnabled ){
+                    setHighlightOccurrences(this);
+                } else {
+                    new Notice('Please enable Occura');
+                }
+            },
+        });
+
+        this.addCommand({
+            id: 'remove-permanent-highlight-occurrences',
+            name: 'Remove permanently highlight for occurrences',
+            callback: () => {
+                if(this.settings.occuraPluginEnabled ){
+                    removeHighlightOccurrences(this);
+                } else {
+                    new Notice('Please enable Occura');
+                }
+            },
         });
 
         // Add icon to the editor title bar when a new leaf is created
@@ -220,6 +248,9 @@ export default class OccuraPlugin extends Plugin {
         const icons = document.querySelectorAll('.highlight-toggle-icon');
         icons.forEach(icon => icon.remove());
     }
+
+
+
 }
 
 
