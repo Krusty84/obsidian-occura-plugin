@@ -5,7 +5,7 @@ import {OccuraPluginSettingTab, OccuraPluginSettings, DEFAULT_SETTINGS} from 'sr
 import {
     highlightOccurrenceExtension,
     setHighlightOccurrences,
-    removeHighlightOccurrences
+    removeHighlightOccurrences, removeTagFromOccurrences, createTagForOccurrences
 } from 'src/highlighter'
 import {parseHotkeyString} from 'src/utils'
 
@@ -66,6 +66,31 @@ export default class OccuraPlugin extends Plugin {
                 }
             },
         });
+
+        this.addCommand({
+            id: 'create-tag-for-occurrences',
+            name: 'Create Tag for occurrences',
+            callback: () => {
+                if(this.settings.occuraPluginEnabled ){
+                    createTagForOccurrences(this);
+                } else {
+                    new Notice('Please enable Occura');
+                }
+            },
+        });
+
+        this.addCommand({
+            id: 'remove-tag-from-occurrences',
+            name: 'Remove Tag for occurrences',
+            callback: () => {
+                if(this.settings.occuraPluginEnabled ){
+                    removeTagFromOccurrences(this);
+                } else {
+                    new Notice('Please enable Occura');
+                }
+            },
+        });
+
 
         // Add icon to the editor title bar when a new leaf is created
         this.registerEvent(
