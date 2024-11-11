@@ -212,7 +212,7 @@ export function setHighlightOccurrences(context:any) {
         changes,
     });
 
-    new Notice(`Permanently highlighted ${matches.length} for ${selectedText} occurrences.`);
+    new Notice(`Permanently highlighted ${matches.length} for "${selectedText}" occurrences.`);
 }
 export function removeHighlightOccurrences(context:any) {
     const activeView = context.app.workspace.getActiveViewOfType(MarkdownView);
@@ -269,7 +269,7 @@ export function removeHighlightOccurrences(context:any) {
         changes,
     });
 
-    new Notice(`Removed highlighting from ${matches.length} occurrences of ${selectedText}.`);
+    new Notice(`Removed highlighting from ${matches.length} occurrences of "${selectedText}".`);
 }
 //endregion
 
