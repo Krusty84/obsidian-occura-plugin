@@ -6,3 +6,35 @@
 .highlight-toggle-icon.is-disabled {
     opacity: 0.5;
 }
+
+.occura-keywords-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px; /* Space between items */
+}
+
+/* Each keyword item (input + remove button) */
+.occura-keyword-item {
+    display: flex;
+    align-items: center;
+}
+
+/* The keyword input field */
+.occura-keyword-input {
+    width: auto;
+    min-width: 100px; /* Minimum width for the input */
+    flex-grow: 1;
+}
+
+/* Remove button styles */
+.occura-remove-button {
+    margin-left: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+.occura-remove-button:hover {
+    color: var(--text-normal);
+}

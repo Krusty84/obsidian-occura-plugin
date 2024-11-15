@@ -4,88 +4,13 @@ import {EditorView, Decoration, DecorationSet, ViewUpdate, ViewPlugin} from '@co
 import {RangeSetBuilder} from '@codemirror/state';
 import type OccuraPlugin from 'main';
 import {MarkdownView, Notice} from "obsidian";
-import {isReadingMode} from "./utils";
 
 // Create a decoration for highlighting
 export const highlightDecoration = Decoration.mark({class: 'found-occurrence'});
 let iFoundOccurCount = 0;
 
+
 /*export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
-    return ViewPlugin.fromClass(
-        class {
-            decorations: DecorationSet;
-            lastEnabledState: boolean;
-
-            constructor(public view: EditorView) {
-                this.lastEnabledState = plugin.settings.occuraPluginEnabled;
-                this.decorations = this.createDecorations();
-            }
-
-            update(update: ViewUpdate) {
-                if (
-                    update.selectionSet ||
-                    update.docChanged ||
-                    update.viewportChanged ||
-                    plugin.settings.occuraPluginEnabled !== this.lastEnabledState
-                ) {
-                    this.decorations = this.createDecorations();
-                }
-            }
-
-            createDecorations() {
-                this.lastEnabledState = plugin.settings.occuraPluginEnabled;
-
-                if (!plugin.settings.occuraPluginEnabled) {
-                    return Decoration.none;
-                }
-
-                const {state} = this.view;
-                const selection = state.selection.main;
-
-                // Return empty decorations if no selection or selection is empty
-                if (selection.empty) {
-                    if (plugin.statusBarOccurrencesNumber) {
-                        if (plugin.settings.statusBarOccurrencesNumberEnabled)
-                            plugin.statusBarOccurrencesNumber.setText("");
-                    }
-                    return Decoration.none;
-                }
-
-                const selectedText = state.doc.sliceString(selection.from, selection.to).trim();
-
-                // Return empty decorations if selection is whitespace or empty
-                if (!selectedText || /\s/.test(selectedText)) {
-                    return Decoration.none;
-                }
-                iFoundOccurCount = 0;
-                const builder = new RangeSetBuilder<Decoration>();
-                const regex = new RegExp(selectedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-
-                for (const {from, to} of this.view.visibleRanges) {
-                    const text = state.doc.sliceString(from, to);
-                    let match;
-                    while ((match = regex.exec(text)) !== null) {
-                        const start = from + match.index;
-                        const end = start + match[0].length;
-                        builder.add(start, end, highlightDecoration);
-                        iFoundOccurCount++;
-                    }
-                }
-                if (plugin.statusBarOccurrencesNumber) {
-                    if (plugin.settings.statusBarOccurrencesNumberEnabled)
-                        plugin.statusBarOccurrencesNumber.setText(`Occura found: ${selectedText} ` + iFoundOccurCount + ' times');
-                }
-                return builder.finish();
-            }
-        },
-        {
-            decorations: v => v.decorations,
-        }
-    );
-
-}*/
-
-export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
     return ViewPlugin.fromClass(
         class {
             decorations: DecorationSet;
@@ -158,7 +83,117 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
             decorations: v => v.decorations,
         }
     );
+}*/
+
+export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
+    return ViewPlugin.fromClass(
+        class {
+            decorations: DecorationSet;
+            lastEnabledState: boolean;
+
+            constructor(public view: EditorView) {
+                this.lastEnabledState = plugin.settings.occuraPluginEnabled;
+                this.decorations = this.createDecorations();
+            }
+
+            update(update: ViewUpdate) {
+                if (
+                    update.selectionSet ||
+                    update.docChanged ||
+                    update.viewportChanged ||
+                    plugin.settings.occuraPluginEnabled !== this.lastEnabledState ||
+                    plugin.settings.autoKeywordsHighlightEnabled !== this.lastEnabledState
+                ) {
+                    this.decorations = this.createDecorations();
+                }
+            }
+
+            createDecorations() {
+                this.lastEnabledState = plugin.settings.occuraPluginEnabled;
+
+                const { state } = this.view;
+                const matches: { from: number; to: number }[] = [];
+                iFoundOccurCount = 0;
+
+                // If Occura plugin is enabled and there's a selection
+                if (plugin.settings.occuraPluginEnabled) {
+                    const selection = state.selection.main;
+
+                    if (!selection.empty) {
+                        const selectedText = state.doc.sliceString(selection.from, selection.to).trim();
+
+                        if (selectedText && !/\s/.test(selectedText)) {
+                            const regex = new RegExp(selectedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+
+                            for (const { from, to } of this.view.visibleRanges) {
+                                const text = state.doc.sliceString(from, to);
+                                let match;
+                                while ((match = regex.exec(text)) !== null) {
+                                    const start = from + match.index;
+                                    const end = start + match[0].length;
+                                    matches.push({ from: start, to: end });
+                                    iFoundOccurCount++;
+                                }
+                            }
+
+                            if (plugin.statusBarOccurrencesNumber && plugin.settings.statusBarOccurrencesNumberEnabled) {
+                                plugin.statusBarOccurrencesNumber.setText(
+                                    `Occura found: ${selectedText} ` + iFoundOccurCount + ' times'
+                                );
+                            }
+                        }
+                    } else {
+                        if (plugin.statusBarOccurrencesNumber && plugin.settings.statusBarOccurrencesNumberEnabled) {
+                            plugin.statusBarOccurrencesNumber.setText("");
+                        }
+                    }
+                }
+
+                // If auto keyword highlighting is enabled
+                if (plugin.settings.autoKeywordsHighlightEnabled && plugin.settings.keywords.length > 0) {
+                    const keywords = plugin.settings.keywords.filter(k => k.trim() !== '');
+
+                    if (keywords.length > 0) {
+                        const keywordRegexes = keywords.map(keyword => {
+                            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                            return new RegExp(`\\b${escapedKeyword}\\b`, 'g');
+                        });
+
+                        for (const { from, to } of this.view.visibleRanges) {
+                            const text = state.doc.sliceString(from, to);
+
+                            keywordRegexes.forEach(regex => {
+                                let match;
+                                while ((match = regex.exec(text)) !== null) {
+                                    const start = from + match.index;
+                                    const end = start + match[0].length;
+                                    matches.push({ from: start, to: end });
+                                }
+                            });
+                        }
+                    }
+                }
+
+                // Now, sort the matches by their 'from' position
+                matches.sort((a, b) => a.from - b.from);
+
+                // Create a RangeSetBuilder
+                const builder = new RangeSetBuilder<Decoration>();
+
+                // Add the sorted ranges to the builder
+                for (const range of matches) {
+                    builder.add(range.from, range.to, highlightDecoration);
+                }
+
+                return builder.finish();
+            }
+        },
+        {
+            decorations: v => v.decorations,
+        }
+    );
 }
+
 
 //region set/remove permanent highlighting
 export function setHighlightOccurrences(context:any) {

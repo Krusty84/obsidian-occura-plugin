@@ -1,6 +1,6 @@
 // settings.ts
 
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import {App, ButtonComponent, PluginSettingTab, Setting, TextComponent} from 'obsidian';
 import type OccuraPlugin from 'main';
 
 // Define the settings interface
@@ -9,6 +9,8 @@ export interface OccuraPluginSettings {
     occuraPluginEnabled: boolean;
     occuraPluginEnabledHotKey:string;
     statusBarOccurrencesNumberEnabled: boolean;
+    keywords: string[],
+    autoKeywordsHighlightEnabled:boolean,
 }
 
 // Set default settings
@@ -17,12 +19,14 @@ export const DEFAULT_SETTINGS: OccuraPluginSettings = {
     occuraPluginEnabled: true,
     occuraPluginEnabledHotKey:'',
     statusBarOccurrencesNumberEnabled: true,
+    keywords: [],
+    autoKeywordsHighlightEnabled:false,
 };
 
 // Settings tab for the plugin
 export class OccuraPluginSettingTab extends PluginSettingTab {
     plugin: OccuraPlugin;
-
+    keywordComponents: TextComponent[] = [];
     constructor(app: App, plugin: OccuraPlugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -95,6 +99,70 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
                         this.plugin.updateEditors();
                     });
             })
+
+        containerEl.createEl('h2', { text: 'Keyword Highlighting' });
+        //Enable/Disable auto keywords highlight
+        new Setting(containerEl)
+            .setName('Automatic Keywords Highlighting')
+            .setDesc('Automatic Keywords Highlighting')
+            .addToggle(toggle => {
+                toggle
+                    .setValue(this.plugin.settings.autoKeywordsHighlightEnabled)
+                    .onChange(async (value) => {
+                        this.plugin.settings.autoKeywordsHighlightEnabled = value;
+                        await this.plugin.saveSettings();
+                        // Force the editor to re-render
+                        this.plugin.updateEditors();
+                    });
+            })
+        // Add a setting for adding new keywords
+        new Setting(containerEl)
+            .setName('Add Keyword')
+            .addButton((button: ButtonComponent) => {
+                button.setButtonText('Add Keyword')
+                    .setCta()
+                    .onClick(() => {
+                        this.plugin.settings.keywords.push('');
+
+                        this.display(); // Refresh the settings tab
+                    });
+            });
+
+        // Create a container for the keyword inputs
+        const keywordsContainer = containerEl.createEl('div', { cls: 'occura-keywords-container' });
+
+        // Apply CSS to the container via class
+        // The styles will be defined in the CSS section below
+
+        // Display existing keywords
+        this.keywordComponents = [];
+        this.plugin.settings.keywords.forEach((keyword, index) => {
+            const keywordItem = keywordsContainer.createEl('div', { cls: 'occura-keyword-item' });
+
+            const textComponent = new TextComponent(keywordItem);
+            textComponent
+                .setPlaceholder('Enter keyword')
+                .setValue(keyword)
+                .onChange(async (value) => {
+                    this.plugin.settings.keywords[index] = value;
+                    await this.plugin.saveSettings();
+                    // Optionally, update the highlights
+                    //this.plugin.updateKeywordHighlights();
+                });
+            this.keywordComponents.push(textComponent);
+
+            // Adjust input styles
+            textComponent.inputEl.addClass('occura-keyword-input');
+
+            const removeButton = keywordItem.createEl('button', { text: '✕', cls: 'occura-remove-button' });
+            removeButton.onclick = async () => {
+                this.plugin.settings.keywords.splice(index, 1);
+                await this.plugin.saveSettings();
+                this.display(); // Refresh the settings tab
+                //this.plugin.updateKeywordHighlights();
+            };
+        });
+
     }
 
     // Helper method to capture hotkey from event
