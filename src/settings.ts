@@ -1,26 +1,28 @@
-// settings.ts
-
 import {App, ButtonComponent, PluginSettingTab, Setting, TextComponent} from 'obsidian';
 import type OccuraPlugin from 'main';
 
 // Define the settings interface
 export interface OccuraPluginSettings {
     highlightColorOccurrences: string;
+    highlightColorKeywords: string;
     occuraPluginEnabled: boolean;
     occuraPluginEnabledHotKey:string;
     statusBarOccurrencesNumberEnabled: boolean;
     keywords: string[],
     autoKeywordsHighlightEnabled:boolean,
+    keywordsCaseSensitive: boolean;
 }
 
 // Set default settings
 export const DEFAULT_SETTINGS: OccuraPluginSettings = {
     highlightColorOccurrences: '#FFFF00', // Default highlight color (yellow)
+    highlightColorKeywords: '#bdfc64',
     occuraPluginEnabled: true,
     occuraPluginEnabledHotKey:'',
     statusBarOccurrencesNumberEnabled: true,
     keywords: [],
     autoKeywordsHighlightEnabled:false,
+    keywordsCaseSensitive: false,
 };
 
 // Settings tab for the plugin
@@ -36,7 +38,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
         const { containerEl } = this;
 
         containerEl.empty();
-
+        containerEl.createEl('h2', { text: 'General' });
         new Setting(containerEl)
             .setName('Highlight color')
             .setDesc('Set the color used to highlight occurrences.')
@@ -100,11 +102,11 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
                     });
             })
 
-        containerEl.createEl('h2', { text: 'Keyword Highlighting' });
+        containerEl.createEl('h2', { text: 'Keyword highlighting' });
         //Enable/Disable auto keywords highlight
         new Setting(containerEl)
-            .setName('Automatic Keywords Highlighting')
-            .setDesc('Automatic Keywords Highlighting')
+            .setName('Automatic keywords highlighting')
+            .setDesc('Automatic keywords highlighting')
             .addToggle(toggle => {
                 toggle
                     .setValue(this.plugin.settings.autoKeywordsHighlightEnabled)
@@ -115,6 +117,32 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
                         this.plugin.updateEditors();
                     });
             })
+        new Setting(containerEl)
+            .setName('Keyword highlight color')
+            .setDesc('Set the color used to highlight keywords.')
+            .addText(text => {
+                text.inputEl.type = 'color';
+                text
+                    .setValue(this.plugin.settings.highlightColorKeywords)
+                    .onChange(async (value) => {
+                        this.plugin.settings.highlightColorKeywords = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.updateHighlightStyle();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Keywords case sensitive')
+            .setDesc('Enable or disable case sensitivity for keyword highlighting.')
+            .addToggle(toggle => {
+                toggle
+                    .setValue(this.plugin.settings.keywordsCaseSensitive)
+                    .onChange(async (value) => {
+                        this.plugin.settings.keywordsCaseSensitive = value;
+                        await this.plugin.saveSettings();
+                        // Force the editor to re-render
+                        this.plugin.updateEditors();
+                    });
+            });
         // Add a setting for adding new keywords
         new Setting(containerEl)
             .setName('Add Keyword')

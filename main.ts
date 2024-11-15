@@ -1,4 +1,4 @@
-import {Plugin, MarkdownView, Notice, WorkspaceLeaf, setIcon, Keymap, setTooltip} from 'obsidian';
+import {Plugin, MarkdownView, Notice, WorkspaceLeaf, setIcon, setTooltip} from 'obsidian';
 import {Compartment} from '@codemirror/state';
 import {EditorView} from '@codemirror/view';
 import {OccuraPluginSettingTab, OccuraPluginSettings, DEFAULT_SETTINGS} from 'src/settings'
@@ -40,6 +40,14 @@ export default class OccuraPlugin extends Plugin {
             name: 'Toggle highlight occurrences',
             callback: () => {
                 this.toggleHighlighting();
+            }
+        });
+
+        this.addCommand({
+            id: 'toggle-keyword-highlighting',
+            name: 'Toggle keyword highlighting',
+            callback: () => {
+                this.toggleKeywordHighlighting();
             }
         });
 
@@ -154,6 +162,15 @@ export default class OccuraPlugin extends Plugin {
         // Optional: Show a notice
         //new Notice(`Occura ${this.settings.occuraPluginEnabled ? 'enabled' : 'disabled'}`);
     }
+    // Toggle keywords highlighting functionality
+    toggleKeywordHighlighting() {
+        this.settings.autoKeywordsHighlightEnabled = !this.settings.autoKeywordsHighlightEnabled;
+        this.saveSettings();
+        // Force the editor to re-render
+        this.updateEditors();
+        // Optional: Show a notice
+        //new Notice(`Keyword highlighting ${this.settings.autoKeywordsHighlightEnabled ? 'enabled' : 'disabled'}`);
+    }
 
     // Clear selection when clicking outside the editor
     private handleDocumentClick(evt: MouseEvent) {
@@ -166,13 +183,16 @@ export default class OccuraPlugin extends Plugin {
         }
     }
 
-    // Method to update the highlight style based on settings
+    // Method to dynamic update the highlight style based on settings
     updateHighlightStyle() {
         if (this.styleEl) {
             this.styleEl.remove();
         }
         this.styleEl = document.createElement('style');
-        this.styleEl.textContent = `.found-occurrence {background-color: ${this.settings.highlightColorOccurrences};}`;
+        this.styleEl.textContent = `
+        .found-occurrence {background-color: ${this.settings.highlightColorOccurrences};}
+        .keyword-occurrence { background-color: ${this.settings.highlightColorKeywords}; }
+    `;
         document.head.appendChild(this.styleEl);
     }
 
@@ -273,9 +293,6 @@ export default class OccuraPlugin extends Plugin {
         const icons = document.querySelectorAll('.highlight-toggle-icon');
         icons.forEach(icon => icon.remove());
     }
-
-
-
 }
 
 
