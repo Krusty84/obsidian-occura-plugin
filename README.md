@@ -4,6 +4,9 @@
 I couldn't find the usual functionality that I used in Notepad++ or different IDEs, where double-clicking on a word immediately showed me how often it appears in the open document.
 
 ### Features
+#### Release 1.3.1:
+Some bugs have been fixed, thanks dear [BlackUdon](https://github.com/BlackUdon)
+ 
 #### Release 1.3.0: 
 Automatic highlighting of keywords (It works only in Source or Live preview mode!)
 
