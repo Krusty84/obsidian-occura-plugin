@@ -29,7 +29,8 @@ export default class OccuraPlugin extends Plugin {
         this.registerEditorExtension(this.highlightCompartment.of(highlightOccurrenceExtension(this)));
 
         // Register click event to clear selection when clicking outside
-        this.registerDomEvent(document, 'click', this.handleDocumentClick.bind(this));
+        // (It has been removed based on PR- "Multiple Conflicts #8" (by BlackUdon) in 1.3.1 version)
+        //this.registerDomEvent(document, 'click', this.handleDocumentClick.bind(this));
 
         // Add custom CSS for highlighting
         this.updateHighlightStyle();
