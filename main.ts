@@ -269,16 +269,14 @@ export default class OccuraPlugin extends Plugin {
         iconEl.empty();
         setIcon(iconEl, 'highlighter');
 
-        // Add appropriate icon
         if (this.settings.occuraPluginEnabled) {
-            this.statusBarOccurrencesNumber = this.addStatusBarItem();
+            // If we've never added the status bar item, do it now
+            if (!this.statusBarOccurrencesNumber) {
+                this.statusBarOccurrencesNumber = this.addStatusBarItem();
+            }
             setTooltip(iconEl, 'Disable highlighting');
             iconEl.removeClass('is-disabled');
         } else {
-            if (this.statusBarOccurrencesNumber) {
-                this.statusBarOccurrencesNumber.remove();
-                this.statusBarOccurrencesNumber = null;
-            }
             setTooltip(iconEl, 'Enable highlighting');
             iconEl.addClass('is-disabled');
         }

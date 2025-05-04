@@ -144,31 +144,33 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
                     });
             });
 
-        new Setting(containerEl)
-            .setName('Enable phrase highlighting')
-            .setDesc('Allow multi-word phrases (e.g., "climate variability")')
-            .addToggle(toggle => {
-                toggle
-                    .setValue(this.plugin.settings.highlightPhrases)
-                    .onChange(async (value) => {
-                        this.plugin.settings.highlightPhrases = value;
-                        await this.plugin.saveSettings();
-                        this.plugin.updateEditors();
-                    });
-            });
+        //for future feature
+        // new Setting(containerEl)
+        //     .setName('Enable phrase highlighting')
+        //     .setDesc('Allow multi-word phrases (e.g., "climate variability")')
+        //     .addToggle(toggle => {
+        //         toggle
+        //             .setValue(this.plugin.settings.highlightPhrases)
+        //             .onChange(async (value) => {
+        //                 this.plugin.settings.highlightPhrases = value;
+        //                 await this.plugin.saveSettings();
+        //                 this.plugin.updateEditors();
+        //             });
+        //     });
 
-        new Setting(containerEl)
-            .setName('Case sensitive matching')
-            .setDesc('Match only if the case is identical')
-            .addToggle(toggle => {
-                toggle
-                    .setValue(this.plugin.settings.caseSensitive)
-                    .onChange(async (value) => {
-                        this.plugin.settings.caseSensitive = value;
-                        await this.plugin.saveSettings();
-                        this.plugin.updateEditors();
-                    });
-            });
+        //for future feature
+        // new Setting(containerEl)
+        //     .setName('Case sensitive matching')
+        //     .setDesc('Match only if the case is identical')
+        //     .addToggle(toggle => {
+        //         toggle
+        //             .setValue(this.plugin.settings.caseSensitive)
+        //             .onChange(async (value) => {
+        //                 this.plugin.settings.caseSensitive = value;
+        //                 await this.plugin.saveSettings();
+        //                 this.plugin.updateEditors();
+        //             });
+        //     });
 
         // Add a setting for adding new keywords
         new Setting(containerEl)
