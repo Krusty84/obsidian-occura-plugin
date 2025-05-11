@@ -1,235 +1,273 @@
-import { App, ButtonComponent, PluginSettingTab, Setting, TextComponent } from 'obsidian';
+import { App, ButtonComponent, PluginSettingTab, Setting, TextComponent, ToggleComponent } from 'obsidian';
 import type OccuraPlugin from 'main';
 
-// Interface defining the shape of our plugin settings
+// Interface defining plugin settings
 export interface OccuraPluginSettings {
-    // Color for highlighting all occurrences
     highlightColorOccurrences: string;
-    // Color for highlighting keywords specifically
     highlightColorKeywords: string;
-    // Enable or disable the plugin globally
     occuraPluginEnabled: boolean;
-    // Hotkey string to toggle the plugin on/off
     occuraPluginEnabledHotKey: string;
-    // Show number of occurrences in status bar
     statusBarOccurrencesNumberEnabled: boolean;
-    // List of user-defined keywords to highlight
     keywords: string[];
-    // Automatically highlight keywords as they are typed
     autoKeywordsHighlightEnabled: boolean;
-    // Treat keywords as case sensitive when matching
     keywordsCaseSensitive: boolean;
 }
 
-// Default values for settings when the plugin is first installed
 export const DEFAULT_SETTINGS: OccuraPluginSettings = {
-    highlightColorOccurrences: '#FFFF00',     // Yellow
-    highlightColorKeywords: '#bdfc64',        // Light green
-    occuraPluginEnabled: true,               // Plugin is on by default
-    occuraPluginEnabledHotKey: '',           // No hotkey set initially
-    statusBarOccurrencesNumberEnabled: true, // Show count in status bar
-    keywords: [],                            // Start with no keywords
-    autoKeywordsHighlightEnabled: false,     // Manual keyword highlighting by default
-    keywordsCaseSensitive: false,            // Case-insensitive matching by default
+    highlightColorOccurrences: '#FFFF00',
+    highlightColorKeywords: '#bdfc64',
+    occuraPluginEnabled: true,
+    occuraPluginEnabledHotKey: '',
+    statusBarOccurrencesNumberEnabled: true,
+    keywords: [],
+    autoKeywordsHighlightEnabled: false,
+    keywordsCaseSensitive: false,
 };
 
-// Settings tab shown in Obsidian's Settings → Community Plugins
 export class OccuraPluginSettingTab extends PluginSettingTab {
     plugin: OccuraPlugin;
-    // Keep references to keyword text inputs so we can refresh them
     keywordComponents: TextComponent[] = [];
+    // track open state of the keyword section
+    private keywordSectionOpen = false;
 
     constructor(app: App, plugin: OccuraPlugin) {
         super(app, plugin);
         this.plugin = plugin;
     }
 
-    // Called whenever the settings tab is displayed or refreshed
     display(): void {
         const { containerEl } = this;
-
-        // Clear old content
         containerEl.empty();
-        // Section header
-        containerEl.createEl('h2', { text: 'General' });
 
-        // Setting: highlight color for occurrences
-        new Setting(containerEl)
-            .setName('Highlight color')
-            .setDesc('Set the color used to highlight occurrences.')
+        //
+        // ── GENERAL SECTION ──
+        //
+        const generalDetails = containerEl.createEl('details');
+        generalDetails.open = true;
+        generalDetails.createEl('summary', { text: 'General' });
+
+        new Setting(generalDetails)
+            .setName('Highlight color (occurrences)')
+            .setDesc('Set the color used to highlight all occurrences.')
             .addText(text => {
                 text.inputEl.type = 'color';
                 text
                     .setValue(this.plugin.settings.highlightColorOccurrences)
-                    .onChange(async (value) => {
-                        // Save new value and update highlights
-                        this.plugin.settings.highlightColorOccurrences = value;
+                    .onChange(async v => {
+                        this.plugin.settings.highlightColorOccurrences = v;
                         await this.plugin.saveSettings();
                         this.plugin.updateHighlightStyle();
                     });
             });
 
-        // Setting: hotkey to enable/disable plugin
-        new Setting(containerEl)
+        new Setting(generalDetails)
             .setName('Hotkey')
-            .setDesc('Click and press the desired hotkey combination')
+            .setDesc('Click and press the desired hotkey combination.')
             .addText(text => {
                 text
                     .setPlaceholder('Click and press hotkey')
                     .setValue(this.plugin.settings.occuraPluginEnabledHotKey);
-
-                // Clear input when focused, to capture new hotkey
-                text.inputEl.addEventListener('focus', () => {
-                    text.inputEl.value = '';
-                });
-
-                // Restore previous hotkey if user leaves field empty
+                text.inputEl.addEventListener('focus', () => text.inputEl.value = '');
                 text.inputEl.addEventListener('blur', () => {
-                    if (!text.inputEl.value) {
+                    if (!text.inputEl.value)
                         text.setValue(this.plugin.settings.occuraPluginEnabledHotKey);
-                    }
                 });
-
-                // Capture key combinations and prevent normal typing
-                text.inputEl.addEventListener('keydown', async (event: KeyboardEvent) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-
-                    // Convert event to human-readable string
-                    const hotkey = this.captureHotkey(event);
-                    text.setValue(hotkey);
-
-                    // Save hotkey and update handler
-                    this.plugin.settings.occuraPluginEnabledHotKey = hotkey;
+                text.inputEl.addEventListener('keydown', async (evt: KeyboardEvent) => {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    const hk = this.captureHotkey(evt);
+                    text.setValue(hk);
+                    this.plugin.settings.occuraPluginEnabledHotKey = hk;
                     await this.plugin.saveSettings();
                     this.plugin.updateKeyHandler();
                 });
             });
 
-        // Toggle: show number of occurrences in status bar
-        new Setting(containerEl)
+        new Setting(generalDetails)
             .setName('Display the number of occurrences')
-            .setDesc('Display the number of occurrences found in the Status bar')
+            .setDesc('Show the total count of occurrences in the status bar.')
             .addToggle(toggle => {
                 toggle
                     .setValue(this.plugin.settings.statusBarOccurrencesNumberEnabled)
-                    .onChange(async (value) => {
-                        this.plugin.settings.statusBarOccurrencesNumberEnabled = value;
+                    .onChange(async v => {
+                        this.plugin.settings.statusBarOccurrencesNumberEnabled = v;
                         await this.plugin.saveSettings();
-                        // Re-render editor to update status bar
                         this.plugin.updateEditors();
                     });
             });
 
-        // Section header for keyword settings
-        containerEl.createEl('h2', { text: 'Keyword highlighting' });
+        //
+        // ── KEYWORD SECTION ──
+        //
+        const keywordsDetails = containerEl.createEl('details');
+        keywordsDetails.open = this.keywordSectionOpen;
+        keywordsDetails.createEl('summary', { text: 'Keyword Highlighting' });
+        keywordsDetails.addEventListener('toggle', () => {
+            this.keywordSectionOpen = keywordsDetails.open;
+        });
 
-        // Toggle: auto highlight keywords
-        new Setting(containerEl)
+        new Setting(keywordsDetails)
             .setName('Automatic keywords highlighting')
-            .setDesc('Highlight keywords automatically')
+            .setDesc('Highlight keywords automatically as you type.')
             .addToggle(toggle => {
                 toggle
                     .setValue(this.plugin.settings.autoKeywordsHighlightEnabled)
-                    .onChange(async (value) => {
-                        this.plugin.settings.autoKeywordsHighlightEnabled = value;
+                    .onChange(async v => {
+                        this.plugin.settings.autoKeywordsHighlightEnabled = v;
                         await this.plugin.saveSettings();
-                        this.plugin.updateEditors(); // Refresh highlights
+                        this.plugin.updateEditors();
                     });
             });
 
-        // Setting: keyword highlight color
-        new Setting(containerEl)
+        new Setting(keywordsDetails)
             .setName('Keyword highlight color')
             .setDesc('Set the color used to highlight keywords.')
             .addText(text => {
                 text.inputEl.type = 'color';
                 text
                     .setValue(this.plugin.settings.highlightColorKeywords)
-                    .onChange(async (value) => {
-                        this.plugin.settings.highlightColorKeywords = value;
+                    .onChange(async v => {
+                        this.plugin.settings.highlightColorKeywords = v;
                         await this.plugin.saveSettings();
                         this.plugin.updateHighlightStyle();
                     });
             });
 
-        // Toggle: case sensitivity for keywords
-        new Setting(containerEl)
+        new Setting(keywordsDetails)
             .setName('Keywords case sensitive')
-            .setDesc('Enable or disable case sensitivity for keyword highlighting.')
+            .setDesc('Match keywords only when letter case exactly matches.')
             .addToggle(toggle => {
                 toggle
                     .setValue(this.plugin.settings.keywordsCaseSensitive)
-                    .onChange(async (value) => {
-                        this.plugin.settings.keywordsCaseSensitive = value;
+                    .onChange(async v => {
+                        this.plugin.settings.keywordsCaseSensitive = v;
                         await this.plugin.saveSettings();
                         this.plugin.updateEditors();
                     });
             });
 
-        // Button: add a new keyword slot
-        new Setting(containerEl)
-            .setName('Add Keyword')
-            .addButton((button: ButtonComponent) => {
-                button.setButtonText('Add Keyword')
+        //
+        // ── IMPORT / EXPORT / ADD KEYWORD ──
+        //
+        const importInput = document.createElement('input');
+        importInput.type = 'file';
+        importInput.accept = '.txt';
+        importInput.style.display = 'none';
+        importInput.addEventListener('change', async e => {
+            e.stopPropagation();
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (!file) return;
+            const text = await file.text();
+            const tokens = text
+                .split(/[\n,]/)
+                .map(t => t.trim())
+                .filter(t => t && !(t.startsWith('"') && t.endsWith('"')));
+            this.plugin.settings.keywords = tokens;
+            await this.plugin.saveSettings();
+            this.display();
+        });
+        keywordsDetails.appendChild(importInput);
+
+        new Setting(keywordsDetails)
+            .addButton(btn => {
+                btn
+                    .setButtonText('Import Keywords')
+                    .onClick(() => importInput.click());
+                ['mousedown', 'click'].forEach(evt =>
+                    btn.buttonEl.addEventListener(evt, e => e.stopPropagation())
+                );
+            })
+            .addButton(btn => {
+                btn
+                    .setButtonText('Export Keywords')
+                    .onClick(() => {
+                        const blob = new Blob(
+                            [this.plugin.settings.keywords.join(',')],
+                            { type: 'text/plain' }
+                        );
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'keywords.txt';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    });
+                ['mousedown', 'click'].forEach(evt =>
+                    btn.buttonEl.addEventListener(evt, e => e.stopPropagation())
+                );
+            })
+            .addButton(btn => {
+                btn
+                    .setButtonText('Add Keyword')
                     .setCta()
                     .onClick(() => {
-                        // Append empty keyword and refresh UI
                         this.plugin.settings.keywords.push('');
                         this.display();
                     });
+                ['mousedown', 'click'].forEach(evt =>
+                    btn.buttonEl.addEventListener(evt, e => e.stopPropagation())
+                );
             });
 
-        // Container to group keyword input fields
-        const keywordsContainer = containerEl.createEl('div', { cls: 'occura-keywords-container' });
-
-        // Reset list of TextComponents
+        //
+        // ── LIST EXISTING KEYWORDS ──
+        //
+        const listContainer = keywordsDetails.createEl('div', {
+            cls: 'occura-keywords-container',
+        });
         this.keywordComponents = [];
-        // For each existing keyword, create an input and remove button
-        this.plugin.settings.keywords.forEach((keyword, index) => {
-            const keywordItem = keywordsContainer.createEl('div', { cls: 'occura-keyword-item' });
-
-            const textComponent = new TextComponent(keywordItem);
-            textComponent
+        this.plugin.settings.keywords.forEach((kw, idx) => {
+            const row = listContainer.createEl('div', { cls: 'occura-keyword-item' });
+            const txt = new TextComponent(row)
                 .setPlaceholder('Enter keyword')
-                .setValue(keyword)
-                .onChange(async (value) => {
-                    this.plugin.settings.keywords[index] = value;
+                .setValue(kw)
+                .onChange(async v => {
+                    this.plugin.settings.keywords[idx] = v;
                     await this.plugin.saveSettings();
-                    // could refresh highlights here if desired
                 });
+            txt.inputEl.addClass('occura-keyword-input');
+            this.keywordComponents.push(txt);
 
-            // Add CSS class for styling
-            textComponent.inputEl.addClass('occura-keyword-input');
-            this.keywordComponents.push(textComponent);
-
-            // Button to remove this keyword
-            const removeButton = keywordItem.createEl('button', { text: '✕', cls: 'occura-remove-button' });
-            removeButton.onclick = async () => {
-                this.plugin.settings.keywords.splice(index, 1);
+            const rem = row.createEl('button', {
+                text: '✕',
+                cls: 'occura-remove-button',
+            });
+            ['mousedown', 'click'].forEach(evt =>
+                rem.addEventListener(evt, e => e.stopPropagation())
+            );
+            rem.addEventListener('click', async () => {
+                this.plugin.settings.keywords.splice(idx, 1);
                 await this.plugin.saveSettings();
                 this.display();
-            };
+            });
         });
+
+        //
+        // ── RESET TO DEFAULTS ──
+        //
+        new Setting(containerEl)
+            .setName('Reset to defaults')
+            .addButton(btn => {
+                btn
+                    .setButtonText('Reset')
+                    .setWarning()
+                    .onClick(async () => {
+                        Object.assign(this.plugin.settings, DEFAULT_SETTINGS);
+                        await this.plugin.saveSettings();
+                        this.display();
+                    });
+            });
     }
 
-    /**
-     * Convert a KeyboardEvent into a displayable hotkey string
-     */
     captureHotkey(event: KeyboardEvent): string {
         const keys: string[] = [];
-
         if (event.ctrlKey || event.metaKey) keys.push('Mod');
         if (event.shiftKey) keys.push('Shift');
         if (event.altKey) keys.push('Alt');
-
-        const key = event.key.toUpperCase();
-        // Skip when user only presses modifier
-        if (!['CONTROL', 'SHIFT', 'ALT', 'META'].includes(key)) {
-            keys.push(key);
+        const k = event.key.toUpperCase();
+        if (!['CONTROL', 'SHIFT', 'ALT', 'META'].includes(k)) {
+            keys.push(k);
         }
-
-        // Join parts with '+' (e.g. 'Mod+Shift+K')
         return keys.join('+');
     }
 }
