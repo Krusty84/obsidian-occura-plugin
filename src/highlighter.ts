@@ -65,7 +65,7 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
                 const matches: { from: number; to: number; decoration: Decoration }[] = [];
                 iFoundOccurCount = 0; // reset counter each time
 
-                // --- Highlight selected text ---
+                // --- Dynamically Highlight selected text ---
                 if (plugin.settings.occuraPluginEnabled) {
                     const selection = state.selection.main;
 
@@ -77,10 +77,12 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
 
                         // Make sure the selected text is a single word or phrase (no spaces-only)
                         if (selectedText && !/\s/.test(selectedText)) {
+                            //case sensitive/insensitive option
+                            const flags = plugin.settings.occuraCaseSensitive ? 'g' : 'gi';
                             // Escape special regex chars and create a global regex
                             const regex = new RegExp(
                                 selectedText.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&'),
-                                'g'
+                                flags
                             );
 
                             // Search in each visible range
@@ -174,7 +176,7 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
 /**
  * Permanently mark all occurrences of selected text using ==text== syntax
  */
-export function setHighlightOccurrences(context: any) {
+export function setPermanentHighlightOccurrences(context: any) {
     const view = context.app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) {
         new Notice('No active editor');
@@ -226,7 +228,7 @@ export function setHighlightOccurrences(context: any) {
 /**
  * Remove permanent ==text== highlighting for selected text
  */
-export function removeHighlightOccurrences(context: any) {
+export function removePermanentHighlightOccurrences(context: any) {
     const view = context.app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) {
         new Notice('No active editor');

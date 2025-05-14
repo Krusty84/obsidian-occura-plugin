@@ -2,6 +2,9 @@
   "highlightColorOccurrences": "#FFFF00",
   "highlightColorKeywords": "#bdfc64",
   "occuraPluginEnabled": true,
+  "occuraCaseSensitive": false,
   "occuraPluginEnabledHotKey": "",
-  "statusBarOccurrencesNumberEnabled": true
+  "statusBarOccurrencesNumberEnabled": true,
+  "autoKeywordsHighlightEnabled": false,
+  "keywordsCaseSensitive": false
 }

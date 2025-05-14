@@ -4,8 +4,8 @@ import {EditorView} from '@codemirror/view';
 import {OccuraPluginSettingTab, OccuraPluginSettings, DEFAULT_SETTINGS} from 'src/settings'
 import {
     highlightOccurrenceExtension,
-    setHighlightOccurrences,
-    removeHighlightOccurrences, removeTagFromOccurrences, createTagForOccurrences
+    setPermanentHighlightOccurrences,
+    removePermanentHighlightOccurrences, removeTagFromOccurrences, createTagForOccurrences,
 } from 'src/highlighter'
 import {parseHotkeyString} from 'src/utils'
 
@@ -18,7 +18,6 @@ export default class OccuraPlugin extends Plugin {
 
     async onload() {
         await this.loadSettings();
-
         // Initialize the compartment for the highlighting extension
         this.highlightCompartment = new Compartment();
 
@@ -57,7 +56,7 @@ export default class OccuraPlugin extends Plugin {
             name: 'Set permanently highlight for occurrences',
             callback: () => {
                 if(this.settings.occuraPluginEnabled ){
-                    setHighlightOccurrences(this);
+                    setPermanentHighlightOccurrences(this);
                 } else {
                     new Notice('Please enable Occura');
                 }
@@ -69,7 +68,7 @@ export default class OccuraPlugin extends Plugin {
             name: 'Remove permanently highlight for occurrences',
             callback: () => {
                 if(this.settings.occuraPluginEnabled ){
-                    removeHighlightOccurrences(this);
+                    removePermanentHighlightOccurrences(this);
                 } else {
                     new Notice('Please enable Occura');
                 }

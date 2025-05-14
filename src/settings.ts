@@ -11,6 +11,7 @@ export interface OccuraPluginSettings {
     keywords: string[];
     autoKeywordsHighlightEnabled: boolean;
     keywordsCaseSensitive: boolean;
+    occuraCaseSensitive: boolean;
 }
 
 export const DEFAULT_SETTINGS: OccuraPluginSettings = {
@@ -22,6 +23,7 @@ export const DEFAULT_SETTINGS: OccuraPluginSettings = {
     keywords: [],
     autoKeywordsHighlightEnabled: false,
     keywordsCaseSensitive: false,
+    occuraCaseSensitive: false,
 };
 
 export class OccuraPluginSettingTab extends PluginSettingTab {
@@ -59,6 +61,19 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
                         this.plugin.updateHighlightStyle();
                     });
             });
+
+        new Setting(generalDetails)
+            .setName('Case sensitive (occurrences)')
+            .setDesc('Match only exact-case when finding all selected-text occurrences.')
+            .addToggle(toggle =>
+                toggle
+                    .setValue(this.plugin.settings.occuraCaseSensitive)
+                    .onChange(async v => {
+                        this.plugin.settings.occuraCaseSensitive = v;
+                        await this.plugin.saveSettings();
+                        this.plugin.updateEditors();
+                    })
+            );
 
         new Setting(generalDetails)
             .setName('Hotkey')
