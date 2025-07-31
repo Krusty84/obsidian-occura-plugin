@@ -1,174 +1,165 @@
-import { EditorView, Decoration, DecorationSet, ViewUpdate, ViewPlugin } from '@codemirror/view';
+import {
+    EditorView,
+    Decoration,
+    DecorationSet,
+    ViewPlugin,
+    ViewUpdate,
+} from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
 import type OccuraPlugin from 'main';
 import { MarkdownView, Notice } from 'obsidian';
 
-// Decoration for selected text highlights (e.g., search matches)
+/* ---------- decorations (CSS classes) ---------- */
+
 export const selectedTextDecoration = Decoration.mark({
-    class: 'found-occurrence', // CSS class for styling
-    priority: 100,             // Higher priority so it appears above others
+    class: 'found-occurrence',
+    priority: 100,
 });
 
-// Decoration for keyword highlights from the user list
 export const keywordDecoration = Decoration.mark({
-    class: 'keyword-occurrence', // CSS class for styling keywords
-    priority: 50,                // Lower priority than selected text
+    class: 'keyword-occurrence',
+    priority: 50,
 });
 
-// Global count of found occurrences (used in status bar)
-let iFoundOccurCount = 0;
+/* ---------- tiny helpers ---------- */
+
+/** Escape characters that have a special meaning in RegExp. */
+function escapeRegex(text: string): string {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 /**
- * Main extension to highlight occurrences and keywords in the editor.
- * @param plugin - the main plugin instance for accessing settings and state
+ * Build a safe RegExp.
+ * If `text` is a “pure” word (only A-Z, a-z, 0-9, _) and `wholeWord` is true,
+ * wrap it in `\b … \b`.  Otherwise return the plain escaped text.
  */
+function buildRegex(
+    text: string,
+    caseSensitive: boolean,
+    wholeWord = true,
+): RegExp {
+    const flags = caseSensitive ? 'g' : 'gi';
+    const escaped = escapeRegex(text);
+    const needBoundary = wholeWord && /^\w+$/.test(text);
+    return new RegExp(needBoundary ? `\\b${escaped}\\b` : escaped, flags);
+}
+
+/* ---------- live-highlight extension ---------- */
+
+let foundCount = 0; // shown in the status bar
+
 export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
     return ViewPlugin.fromClass(
         class {
-            decorations: DecorationSet;            // holds the active decorations
-            lastOccuraPluginEnabledState: boolean; // track last "enabled" state
-            lastAutoKeywordsHighlightEnabledState: boolean; // track last "auto highlight" state
+            decorations: DecorationSet;
+            lastEnabled = plugin.settings.occuraPluginEnabled;
+            lastAutoHL = plugin.settings.autoKeywordsHighlightEnabled;
 
             constructor(public view: EditorView) {
-                // Save initial setting states
-                this.lastOccuraPluginEnabledState = plugin.settings.occuraPluginEnabled;
-                this.lastAutoKeywordsHighlightEnabledState = plugin.settings.autoKeywordsHighlightEnabled;
-                // Create initial decorations
-                this.decorations = this.createDecorations();
+                this.decorations = this.buildDecorations();
             }
 
-            /**
-             * Called when the editor updates (selection, content, or viewport changes)
-             */
-            update(update: ViewUpdate) {
-                // If something relevant changed or settings toggled, rebuild decorations
+            update(u: ViewUpdate) {
                 if (
-                    update.selectionSet ||
-                    update.docChanged ||
-                    update.viewportChanged ||
-                    plugin.settings.occuraPluginEnabled !== this.lastOccuraPluginEnabledState ||
-                    plugin.settings.autoKeywordsHighlightEnabled !== this.lastAutoKeywordsHighlightEnabledState
+                    u.selectionSet ||
+                    u.docChanged ||
+                    u.viewportChanged ||
+                    plugin.settings.occuraPluginEnabled !== this.lastEnabled ||
+                    plugin.settings.autoKeywordsHighlightEnabled !==
+                    this.lastAutoHL
                 ) {
-                    this.decorations = this.createDecorations();
+                    this.decorations = this.buildDecorations();
                 }
             }
 
-            /**
-             * Scan the visible document range and create decorations for matches
-             */
-            createDecorations() {
-                // Update our saved setting states
-                this.lastOccuraPluginEnabledState = plugin.settings.occuraPluginEnabled;
-                this.lastAutoKeywordsHighlightEnabledState = plugin.settings.autoKeywordsHighlightEnabled;
+            /* Scan the visible ranges and prepare the decoration set */
+            private buildDecorations() {
+                this.lastEnabled = plugin.settings.occuraPluginEnabled;
+                this.lastAutoHL = plugin.settings.autoKeywordsHighlightEnabled;
 
                 const { state } = this.view;
-                const matches: { from: number; to: number; decoration: Decoration }[] = [];
-                iFoundOccurCount = 0; // reset counter each time
+                const builder = new RangeSetBuilder<Decoration>();
+                foundCount = 0;
 
-                // --- Dynamically Highlight selected text ---
+                /* --- highlight the currently selected text --- */
                 if (plugin.settings.occuraPluginEnabled) {
-                    const selection = state.selection.main;
-
-                    // Only proceed if there is a non-empty selection
-                    if (!selection.empty) {
-                        const selectedText = state.doc
-                            .sliceString(selection.from, selection.to)
-                            .trim();
-
-                        // Make sure the selected text is a single word or phrase (no spaces-only)
-                        if (selectedText && !/\s/.test(selectedText)) {
-                            //case sensitive/insensitive option
-                            const flags = plugin.settings.occuraCaseSensitive ? 'g' : 'gi';
-                            // Escape special regex chars and create a global regex
-                            const regex = new RegExp(
-                                selectedText.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&'),
-                                flags
+                    const sel = state.selection.main;
+                    if (!sel.empty) {
+                        const txt = state.doc.sliceString(sel.from, sel.to).trim();
+                        if (txt && !/\s/.test(txt)) {
+                            const re = buildRegex(
+                                txt,
+                                plugin.settings.occuraCaseSensitive,
+                                /*wholeWord*/ false,
                             );
-
-                            // Search in each visible range
-                            for (const { from, to } of this.view.visibleRanges) {
-                                const text = state.doc.sliceString(from, to);
-                                let match;
-                                while ((match = regex.exec(text)) !== null) {
-                                    const start = from + match.index;
-                                    const end = start + match[0].length;
-                                    matches.push({ from: start, to: end, decoration: selectedTextDecoration });
-                                    iFoundOccurCount++;
-                                }
-                            }
-
-                            // Update status bar with count if enabled
-                            if (
-                                plugin.statusBarOccurrencesNumber &&
-                                plugin.settings.statusBarOccurrencesNumberEnabled
-                            ) {
-                                plugin.statusBarOccurrencesNumber.setText(
-                                    `Occura found: ${selectedText} ${iFoundOccurCount} times`
-                                );
-                            }
+                            this.searchVisibleRanges(re, selectedTextDecoration, builder);
+                            this.updateStatusBar(txt);
                         } else {
-                            // Clear status bar if text is empty or just spaces
-                            if (
-                                plugin.statusBarOccurrencesNumber &&
-                                plugin.settings.statusBarOccurrencesNumberEnabled
-                            ) {
-                                plugin.statusBarOccurrencesNumber.setText('');
-                            }
+                            this.updateStatusBar('');
                         }
                     } else {
-                        // Clear status bar when nothing is selected
-                        if (
-                            plugin.statusBarOccurrencesNumber &&
-                            plugin.settings.statusBarOccurrencesNumberEnabled
-                        ) {
-                            plugin.statusBarOccurrencesNumber.setText('');
-                        }
+                        this.updateStatusBar('');
                     }
                 }
 
-                // --- Highlight keywords from list ---
+                /* --- highlight keywords from the user list --- */
                 if (
                     plugin.settings.occuraPluginEnabled &&
-                    plugin.settings.autoKeywordsHighlightEnabled &&
-                    plugin.settings.keywords.length > 0
+                    plugin.settings.autoKeywordsHighlightEnabled
                 ) {
-                    // Filter out empty keywords
-                    const keywords = plugin.settings.keywords.filter(k => k.trim() !== '');
-                    if (keywords.length > 0) {
-                        // Build regex for each keyword, respect case sensitivity
-                        const flags = plugin.settings.keywordsCaseSensitive ? 'g' : 'gi';
-                        const regexList = keywords.map(word => {
-                            const esc = word.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
-                            return new RegExp(`\\b${esc}\\b`, flags);
-                        });
+                    const words = plugin.settings.keywords
+                        .map(k => k.trim())
+                        .filter(k => k !== '');
 
-                        // Search each visible range for each keyword
-                        for (const { from, to } of this.view.visibleRanges) {
-                            const text = state.doc.sliceString(from, to);
-                            regexList.forEach(regex => {
-                                let match;
-                                while ((match = regex.exec(text)) !== null) {
-                                    const start = from + match.index;
-                                    const end = start + match[0].length;
-                                    matches.push({ from: start, to: end, decoration: keywordDecoration });
-                                }
-                            });
-                        }
+                    if (words.length) {
+                        const regexes = words.map(word =>
+                            buildRegex(
+                                word,
+                                plugin.settings.keywordsCaseSensitive,
+                                /*wholeWord*/ true,
+                            ),
+                        );
+                        regexes.forEach(re =>
+                            this.searchVisibleRanges(re, keywordDecoration, builder),
+                        );
                     }
                 }
 
-                // Sort matches by position to avoid overlap issues
-                matches.sort((a, b) => a.from - b.from);
-
-                // Build a decoration set from sorted ranges
-                const builder = new RangeSetBuilder<Decoration>();
-                for (const m of matches) {
-                    builder.add(m.from, m.to, m.decoration);
-                }
                 return builder.finish();
             }
+
+            /* Search every visible range with `re` and add decorations to `builder`. */
+            private searchVisibleRanges(
+                re: RegExp,
+                deco: Decoration,
+                builder: RangeSetBuilder<Decoration>,
+            ) {
+                const { state } = this.view;
+                for (const { from, to } of this.view.visibleRanges) {
+                    const text = state.doc.sliceString(from, to);
+                    let m: RegExpExecArray | null;
+                    while ((m = re.exec(text))) {
+                        const start = from + m.index;
+                        const end = start + m[0].length;
+                        builder.add(start, end, deco);
+                        foundCount++;
+                    }
+                }
+            }
+
+            /* Write “Occura found: …” into the status bar (or clear it). */
+            private updateStatusBar(message: string) {
+                if (
+                    plugin.statusBarOccurrencesNumber &&
+                    plugin.settings.statusBarOccurrencesNumberEnabled
+                ) {
+                    plugin.statusBarOccurrencesNumber.setText(
+                        message ? `Occura found: ${message} ${foundCount} times` : '',
+                    );
+                }
+            }
         },
-        { decorations: v => v.decorations } // tell CodeMirror where to get decorations
+        { decorations: v => v.decorations },
     );
 }
 
@@ -178,50 +169,25 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
  */
 export function setPermanentHighlightOccurrences(context: any) {
     const view = context.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view) {
-        new Notice('No active editor');
-        return;
-    }
+    if (!view) return new Notice('No active editor');
 
     const editor = view.editor;
-    const selText = editor.getSelection().trim();
-    // Only single words or phrases without spaces
-    if (!selText || /\s/.test(selText)) {
-        new Notice('Please select some text to highlight.');
-        return;
-    }
+    const sel = editor.getSelection().trim();
+    if (!sel || /\s/.test(sel)) return new Notice('Select some text first.');
 
-    // Create a regex to find all matches
-    const esc = selText.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
-    const regex = new RegExp(esc, 'g');
+    const re = buildRegex(sel, /*caseSensitive*/ true, /*wholeWord*/ false);
     const doc = editor.getValue();
     const matches: { from: number; to: number }[] = [];
-    let match;
-    while ((match = regex.exec(doc)) !== null) {
-        matches.push({ from: match.index, to: match.index + match[0].length });
-    }
+    let m;
+    while ((m = re.exec(doc))) matches.push({ from: m.index, to: m.index + m[0].length });
 
-    if (matches.length === 0) {
-        new Notice('No occurrences found.');
-        return;
-    }
+    if (!matches.length) return new Notice('No occurrences found.');
 
-    // Get the low-level EditorView to dispatch changes
-    const cmView = (editor as any).cm as EditorView;
-    if (!cmView) {
-        new Notice('Cannot access the editor view.');
-        return;
-    }
-
-    // Prepare insertions in reverse order to keep positions valid
-    const changes = matches.reverse().map(r => ({
-        from: r.from,
-        to: r.to,
-        insert: `==${doc.slice(r.from, r.to)}==`,
-    }));
-
-    // Apply all changes in one go
-    cmView.dispatch({ changes });
+    const cm = (editor as any).cm as EditorView;
+    const changes = matches
+        .reverse()
+        .map(r => ({ from: r.from, to: r.to, insert: `==${doc.slice(r.from, r.to)}==` }));
+    cm.dispatch({ changes });
     new Notice(`Permanently highlighted ${matches.length} occurrences.`);
 }
 
@@ -230,47 +196,27 @@ export function setPermanentHighlightOccurrences(context: any) {
  */
 export function removePermanentHighlightOccurrences(context: any) {
     const view = context.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view) {
-        new Notice('No active editor');
-        return;
-    }
+    if (!view) return new Notice('No active editor');
 
     const editor = view.editor;
-    const selText = editor.getSelection().trim();
-    if (!selText || /\s/.test(selText)) {
-        new Notice('Please select some text to remove highlighting from.');
-        return;
-    }
+    const sel = editor.getSelection().trim();
+    if (!sel || /\s/.test(sel)) return new Notice('Select text to un-highlight.');
 
-    // Build pattern to match ==text==
-    const esc = selText.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
-    const pattern = `==${esc}==`;
-    const regex = new RegExp(pattern, 'g');
+    const re = buildRegex(`==${sel}==`, /*caseSensitive*/ true, /*wholeWord*/ false);
     const doc = editor.getValue();
     const matches: { from: number; to: number }[] = [];
-    let match;
-    while ((match = regex.exec(doc)) !== null) {
-        matches.push({ from: match.index, to: match.index + match[0].length });
-    }
+    let m;
+    while ((m = re.exec(doc))) matches.push({ from: m.index, to: m.index + m[0].length });
 
-    if (matches.length === 0) {
-        new Notice('No highlighted occurrences found.');
-        return;
-    }
+    if (!matches.length) return new Notice('No highlighted occurrences found.');
 
-    const cmView = (editor as any).cm as EditorView;
-    if (!cmView) {
-        new Notice('Cannot access the editor view.');
-        return;
-    }
-
-    // Reverse and replace ==text== with the original text
-    const changes = matches.reverse().map(r => {
-        const original = doc.slice(r.from + 2, r.to - 2);
-        return { from: r.from, to: r.to, insert: original };
-    });
-
-    cmView.dispatch({ changes });
+    const cm = (editor as any).cm as EditorView;
+    const changes = matches.reverse().map(r => ({
+        from: r.from,
+        to: r.to,
+        insert: doc.slice(r.from + 2, r.to - 2), // strip ==
+    }));
+    cm.dispatch({ changes });
     new Notice(`Removed highlighting from ${matches.length} occurrences.`);
 }
 //endregion Permanent highlight
@@ -281,41 +227,26 @@ export function removePermanentHighlightOccurrences(context: any) {
  */
 export function createTagForOccurrences(context: any) {
     const view = context.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view) {
-        new Notice('No active editor');
-        return;
-    }
+    if (!view) return new Notice('No active editor');
 
     const editor = view.editor;
-    const selText = editor.getSelection().trim();
-    if (!selText || /\s/.test(selText)) {
-        new Notice('Please select a single word to tag.');
-        return;
-    }
+    const sel = editor.getSelection().trim();
+    if (!sel || /\s/.test(sel)) return new Notice('Select one word to tag.');
 
-    // Match whole words using word boundaries
-    const esc = selText.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
-    const regex = new RegExp(`\\b${esc}\\b`, 'g');
+    const re = buildRegex(sel, /*caseSensitive*/ true, /*wholeWord*/ true);
     const doc = editor.getValue();
     const matches: { from: number; to: number }[] = [];
-    let match;
-    while ((match = regex.exec(doc)) !== null) {
-        matches.push({ from: match.index, to: match.index + match[0].length });
-    }
+    let m;
+    while ((m = re.exec(doc))) matches.push({ from: m.index, to: m.index + m[0].length });
 
-    if (matches.length === 0) {
-        new Notice('No occurrences found.');
-        return;
-    }
+    if (!matches.length) return new Notice('No occurrences found.');
 
-    // Insert tags from end to start to keep positions valid
-    matches.reverse().forEach(range => {
-        const fromPos = editor.offsetToPos(range.from);
-        const toPos = editor.offsetToPos(range.to);
-        const word = editor.getRange(fromPos, toPos);
-        editor.replaceRange(`#${word}`, fromPos, toPos);
+    matches.reverse().forEach(r => {
+        const from = editor.offsetToPos(r.from);
+        const to = editor.offsetToPos(r.to);
+        const word = editor.getRange(from, to);
+        editor.replaceRange(`#${word}`, from, to);
     });
-
     new Notice(`Tagged ${matches.length} occurrences.`);
 }
 
@@ -324,41 +255,26 @@ export function createTagForOccurrences(context: any) {
  */
 export function removeTagFromOccurrences(context: any) {
     const view = context.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view) {
-        new Notice('No active editor');
-        return;
-    }
+    if (!view) return new Notice('No active editor');
 
     const editor = view.editor;
-    const selText = editor.getSelection().trim();
-    if (!selText || /\s/.test(selText)) {
-        new Notice('Please select the tagged word to remove tags from.');
-        return;
-    }
+    const sel = editor.getSelection().trim();
+    if (!sel || /\s/.test(sel)) return new Notice('Select the tagged word.');
 
-    // Match words preceded by '#'
-    const esc = selText.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
-    const regex = new RegExp(`#\\b${esc}\\b`, 'g');
+    const re = buildRegex(`#${sel}`, /*caseSensitive*/ true, /*wholeWord*/ false);
     const doc = editor.getValue();
     const matches: { from: number; to: number }[] = [];
-    let match;
-    while ((match = regex.exec(doc)) !== null) {
-        matches.push({ from: match.index, to: match.index + match[0].length });
-    }
+    let m;
+    while ((m = re.exec(doc))) matches.push({ from: m.index, to: m.index + m[0].length });
 
-    if (matches.length === 0) {
-        new Notice('No tagged occurrences found.');
-        return;
-    }
+    if (!matches.length) return new Notice('No tagged occurrences found.');
 
-    // Remove tags from end to start to avoid shifting
-    matches.reverse().forEach(range => {
-        const fromPos = editor.offsetToPos(range.from);
-        const toPos = editor.offsetToPos(range.to);
-        const text = editor.getRange(fromPos, toPos).replace(/^#+/, '');
-        editor.replaceRange(text, fromPos, toPos);
+    matches.reverse().forEach(r => {
+        const from = editor.offsetToPos(r.from);
+        const to = editor.offsetToPos(r.to);
+        const text = editor.getRange(from, to).replace(/^#+/, '');
+        editor.replaceRange(text, from, to);
     });
-
     new Notice(`Removed tags from ${matches.length} occurrences.`);
 }
 //endregion Tag commands
