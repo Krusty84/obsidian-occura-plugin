@@ -4,6 +4,8 @@
 I couldn't find the usual functionality that I used in Notepad++ or different IDEs, where double-clicking on a word immediately showed me how often it appears in the open document.
 
 ### Features
+#### Release 1.4.1:
+The issues with selecting special chartes like $ # % @ has beein fixed, thanks dear [Logovaz26](https://github.com/Logovaz26)
 #### Release 1.4.0:
 New features has been added:
 
