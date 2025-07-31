@@ -4,6 +4,17 @@
 I couldn't find the usual functionality that I used in Notepad++ or different IDEs, where double-clicking on a word immediately showed me how often it appears in the open document.
 
 ### Features
+#### Release 1.4.0:
+New features has been added:
+
+1. Added case insensitivity mode for dynamic word selection
+
+2. Keywords can be uploaded/downloaded to/from a plain text file with a comma separator between words
+
+3. Added a reset button to default settings
+
+<img width="843" alt="image" src="https://github.com/user-attachments/assets/57c9b219-1fe3-499b-8a4d-09a9e071e31b" />
+
 #### Release 1.3.2:
 Some bugs have been fixed, thanks dear [BlackUdon](https://github.com/BlackUdon)
 
