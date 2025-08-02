@@ -1,6 +1,15 @@
 import { App, ButtonComponent, PluginSettingTab, Setting, TextComponent, ToggleComponent } from 'obsidian';
 import type OccuraPlugin from 'main';
 
+export interface KeywordGroup {
+    id: string;              // stable id, not the name
+    name: string;            // e.g., "Dirty words"
+    color: string;           // e.g., "#ff0000"
+    keywords: string[];      // words in this class
+    enabled: boolean;        // allow turning a class on/off
+    caseSensitive: boolean;  // per-class matching
+}
+
 // Interface defining plugin settings
 export interface OccuraPluginSettings {
     highlightColorOccurrences: string;
@@ -12,6 +21,8 @@ export interface OccuraPluginSettings {
     autoKeywordsHighlightEnabled: boolean;
     keywordsCaseSensitive: boolean;
     occuraCaseSensitive: boolean;
+    //
+    keywordGroups: KeywordGroup[];
 }
 
 export const DEFAULT_SETTINGS: OccuraPluginSettings = {
@@ -24,6 +35,8 @@ export const DEFAULT_SETTINGS: OccuraPluginSettings = {
     autoKeywordsHighlightEnabled: false,
     keywordsCaseSensitive: false,
     occuraCaseSensitive: false,
+    //
+    keywordGroups: [],
 };
 
 export class OccuraPluginSettingTab extends PluginSettingTab {
@@ -31,6 +44,8 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
     keywordComponents: TextComponent[] = [];
     // track open state of the keyword section
     private keywordSectionOpen = false;
+    // keyword class sections
+    private groupOpen: Record<string, boolean> = {};
 
     constructor(app: App, plugin: OccuraPlugin) {
         super(app, plugin);
@@ -111,9 +126,6 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
                     });
             });
 
-        //
-        // ── KEYWORD SECTION ──
-        //
         const keywordsDetails = containerEl.createEl('details');
         keywordsDetails.open = this.keywordSectionOpen;
         keywordsDetails.createEl('summary', { text: 'Keyword Highlighting' });
@@ -134,89 +146,24 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
                     });
             });
 
+// Header with "Add Class"
         new Setting(keywordsDetails)
-            .setName('Keyword highlight color')
-            .setDesc('Set the color used to highlight keywords.')
-            .addText(text => {
-                text.inputEl.type = 'color';
-                text
-                    .setValue(this.plugin.settings.highlightColorKeywords)
-                    .onChange(async v => {
-                        this.plugin.settings.highlightColorKeywords = v;
-                        await this.plugin.saveSettings();
-                        this.plugin.updateHighlightStyle();
-                    });
-            });
-
-        new Setting(keywordsDetails)
-            .setName('Keywords case sensitive')
-            .setDesc('Match keywords only when letter case exactly matches.')
-            .addToggle(toggle => {
-                toggle
-                    .setValue(this.plugin.settings.keywordsCaseSensitive)
-                    .onChange(async v => {
-                        this.plugin.settings.keywordsCaseSensitive = v;
-                        await this.plugin.saveSettings();
-                        this.plugin.updateEditors();
-                    });
-            });
-
-        //
-        // ── IMPORT / EXPORT / ADD KEYWORD ──
-        //
-        const importInput = document.createElement('input');
-        importInput.type = 'file';
-        importInput.accept = '.txt';
-        importInput.style.display = 'none';
-        importInput.addEventListener('change', async e => {
-            e.stopPropagation();
-            const file = (e.target as HTMLInputElement).files?.[0];
-            if (!file) return;
-            const text = await file.text();
-            const tokens = text
-                .split(/[\n,]/)
-                .map(t => t.trim())
-                .filter(t => t && !(t.startsWith('"') && t.endsWith('"')));
-            this.plugin.settings.keywords = tokens;
-            await this.plugin.saveSettings();
-            this.display();
-        });
-        keywordsDetails.appendChild(importInput);
-
-        new Setting(keywordsDetails)
+            .setName('Word classes')
+            .setDesc('Each class has a color and its own word list.')
             .addButton(btn => {
-                btn
-                    .setButtonText('Import Keywords')
-                    .onClick(() => importInput.click());
-                ['mousedown', 'click'].forEach(evt =>
-                    btn.buttonEl.addEventListener(evt, e => e.stopPropagation())
-                );
-            })
-            .addButton(btn => {
-                btn
-                    .setButtonText('Export Keywords')
-                    .onClick(() => {
-                        const blob = new Blob(
-                            [this.plugin.settings.keywords.join(',')],
-                            { type: 'text/plain' }
-                        );
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'keywords.txt';
-                        a.click();
-                        URL.revokeObjectURL(url);
-                    });
-                ['mousedown', 'click'].forEach(evt =>
-                    btn.buttonEl.addEventListener(evt, e => e.stopPropagation())
-                );
-            })
-            .addButton(btn => {
-                btn
-                    .setButtonText('Add Keyword')
+                btn.setButtonText('Add Class')
                     .setCta()
-                    .onClick(() => {
-                        this.plugin.settings.keywords.push('');
+                    .onClick(async () => {
+                        const g: KeywordGroup = {
+                            id: crypto?.randomUUID?.() ?? String(Date.now()),
+                            name: 'New class',
+                            color: '#66ccff',
+                            keywords: [],
+                            enabled: true,
+                            caseSensitive: false,
+                        };
+                        this.plugin.settings.keywordGroups.push(g);
+                        await this.plugin.saveSettings();
                         this.display();
                     });
                 ['mousedown', 'click'].forEach(evt =>
@@ -224,36 +171,161 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
                 );
             });
 
-        //
-        // ── LIST EXISTING KEYWORDS ──
-        //
-        const listContainer = keywordsDetails.createEl('div', {
-            cls: 'occura-keywords-container',
-        });
-        this.keywordComponents = [];
-        this.plugin.settings.keywords.forEach((kw, idx) => {
-            const row = listContainer.createEl('div', { cls: 'occura-keyword-item' });
-            const txt = new TextComponent(row)
-                .setPlaceholder('Enter keyword')
-                .setValue(kw)
-                .onChange(async v => {
-                    this.plugin.settings.keywords[idx] = v;
-                    await this.plugin.saveSettings();
-                });
-            txt.inputEl.addClass('occura-keyword-input');
-            this.keywordComponents.push(txt);
+// Render each class
+        this.plugin.settings.keywordGroups.forEach((group, gi) => {
+            const groupDetails = keywordsDetails.createEl('details');
+            groupDetails.open = this.groupOpen[group.id] ?? false;
 
-            const rem = row.createEl('button', {
-                text: '✕',
-                cls: 'occura-remove-button',
+            // keep it updated
+            groupDetails.addEventListener('toggle', () => {
+                this.groupOpen[group.id] = groupDetails.open;
             });
-            ['mousedown', 'click'].forEach(evt =>
-                rem.addEventListener(evt, e => e.stopPropagation())
-            );
-            rem.addEventListener('click', async () => {
-                this.plugin.settings.keywords.splice(idx, 1);
+
+            // Summary: swatch + name
+            const summary = groupDetails.createEl('summary');
+            const swatch = summary.createEl('span', { cls: 'occura-color-swatch' });
+            swatch.setAttr('style', `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`);
+            summary.createSpan({ text: group.name });
+
+
+            // Row: name + delete
+            new Setting(groupDetails)
+                .setName('Class name')
+                .addText(t => {
+                    t.setValue(group.name).onChange(async v => {
+                        group.name = v || 'Unnamed';
+                        await this.plugin.saveSettings();
+                        summary.empty();
+                        const sw = summary.createEl('span', { cls: 'occura-color-swatch' });
+                        sw.setAttr('style', `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`);
+                        summary.createSpan({ text: group.name });
+                    });
+                })
+                .addExtraButton(b => {
+                    b.setIcon('trash').onClick(async () => {
+                        if (!confirm(`Delete class "${group.name}"?`)) return;
+                        this.plugin.settings.keywordGroups.splice(gi, 1);
+                        delete this.groupOpen[group.id];
+                        await this.plugin.saveSettings();
+                        this.display();
+                    });
+                });
+
+            // Row: enabled words class
+            new Setting(groupDetails)
+                .setName('Enabled')
+                .setDesc('Turn this class on or off.')
+                .addToggle(tg => {
+                    tg.setValue(group.enabled).onChange(async v => {
+                        group.enabled = v;
+                        await this.plugin.saveSettings();
+                        this.plugin.updateEditors();
+                    });
+                });
+
+            // Row: color
+            new Setting(groupDetails)
+                .setName('Color')
+                .setDesc('Set the color used to highlight all words occurrences.')
+                .addText(text => {
+                    text.inputEl.type = 'color';
+                    text.setValue(group.color).onChange(async v => {
+                        group.color = v || '#66ccff';
+                        await this.plugin.saveSettings();
+                        swatch.setAttr('style', `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`);
+                        this.plugin.updateHighlightStyle();
+                    });
+                })
+
+            // Row: case sensitive
+            new Setting(groupDetails)
+                .setName('Case sensitive')
+                .setDesc('Match words with exact case.')
+                .addToggle(t => {
+                    t.setValue(group.caseSensitive).onChange(async v => {
+                        group.caseSensitive = v;
+                        await this.plugin.saveSettings();
+                        this.plugin.updateEditors();
+                    });
+                });
+
+            // Import / Export / Add Word (per class)
+            const importInput = document.createElement('input');
+            importInput.type = 'file';
+            importInput.accept = '.txt';
+            importInput.style.display = 'none';
+            importInput.addEventListener('change', async e => {
+                e.stopPropagation();
+                const file = (e.target as HTMLInputElement).files?.[0];
+                if (!file) return;
+                const text = await file.text();
+                const tokens = text
+                    .split(/[\n,]/)
+                    .map(t => t.trim())
+                    .filter(t => t && !(t.startsWith('"') && t.endsWith('"')));
+                group.keywords = tokens;
                 await this.plugin.saveSettings();
+                this.groupOpen[group.id] = true;     // keep it open
                 this.display();
+            });
+            groupDetails.appendChild(importInput);
+
+            new Setting(groupDetails)
+                .addButton(btn => {
+                    btn.setButtonText('Import Words').onClick(() => importInput.click());
+                    ['mousedown', 'click'].forEach(evt =>
+                        btn.buttonEl.addEventListener(evt, e => e.stopPropagation())
+                    );
+                })
+                .addButton(btn => {
+                    btn.setButtonText('Export Words').onClick(() => {
+                        const blob = new Blob([group.keywords.join(',')], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${group.name.replace(/\s+/g,'_')}.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    });
+                    ['mousedown', 'click'].forEach(evt =>
+                        btn.buttonEl.addEventListener(evt, e => e.stopPropagation())
+                    );
+                })
+                .addButton(btn => {
+                    btn.setButtonText('Add Word').setCta().onClick(() => {
+                        group.keywords.push('');
+                        this.groupOpen[group.id] = true;   // keep it open
+                        this.display();
+                    });
+                    ['mousedown','click'].forEach(evt =>
+                        btn.buttonEl.addEventListener(evt, e => e.stopPropagation())
+                    );
+                });
+
+            // Word list
+            const listContainer = groupDetails.createEl('div', { cls: 'occura-keywords-container' });
+            group.keywords.forEach((kw, idx) => {
+                const row = listContainer.createEl('div', { cls: 'occura-keyword-item' });
+
+                const txt = new TextComponent(row)
+                    .setPlaceholder('Enter word')
+                    .setValue(kw)
+                    .onChange(async v => {
+                        group.keywords[idx] = v;
+                        await this.plugin.saveSettings();
+                    });
+                txt.inputEl.addClass('occura-keyword-input');
+
+                const rem = row.createEl('button', { text: '✕', cls: 'occura-remove-button' });
+                ['mousedown', 'click'].forEach(evt =>
+                    rem.addEventListener(evt, e => e.stopPropagation())
+                );
+                rem.addEventListener('click', async () => {
+                    group.keywords.splice(idx, 1);
+                    await this.plugin.saveSettings();
+                    this.groupOpen[group.id] = true;
+                    this.display();
+                });
             });
         });
 

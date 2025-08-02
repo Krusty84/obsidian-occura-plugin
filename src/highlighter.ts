@@ -55,6 +55,8 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
             lastEnabled = plugin.settings.occuraPluginEnabled;
             lastAutoHL = plugin.settings.autoKeywordsHighlightEnabled;
 
+            private groupDecoCache = new Map<string, Decoration>();
+
             constructor(public view: EditorView) {
                 this.decorations = this.buildDecorations();
             }
@@ -65,34 +67,41 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
                     u.docChanged ||
                     u.viewportChanged ||
                     plugin.settings.occuraPluginEnabled !== this.lastEnabled ||
-                    plugin.settings.autoKeywordsHighlightEnabled !==
-                    this.lastAutoHL
+                    plugin.settings.autoKeywordsHighlightEnabled !== this.lastAutoHL
                 ) {
                     this.decorations = this.buildDecorations();
                 }
             }
 
-            /* Scan the visible ranges and prepare the decoration set */
+            private getGroupDecoration(groupId: string): Decoration {
+                let deco = this.groupDecoCache.get(groupId);
+                if (!deco) {
+                    deco = Decoration.mark({
+                        class: `occura-kw-${groupId}`,
+                        priority: 50,
+                    });
+                    this.groupDecoCache.set(groupId, deco);
+                }
+                return deco;
+            }
+
             private buildDecorations() {
                 this.lastEnabled = plugin.settings.occuraPluginEnabled;
                 this.lastAutoHL = plugin.settings.autoKeywordsHighlightEnabled;
 
-                const { state } = this.view;
-                const builder = new RangeSetBuilder<Decoration>();
+                const matches: { from: number; to: number; deco: Decoration; startSide: number }[] = [];
+                const addedSpans = new Set<string>();
                 foundCount = 0;
 
-                /* --- highlight the currently selected text --- */
+                /* --- selected text occurrences --- */
                 if (plugin.settings.occuraPluginEnabled) {
+                    const { state } = this.view;
                     const sel = state.selection.main;
                     if (!sel.empty) {
                         const txt = state.doc.sliceString(sel.from, sel.to).trim();
                         if (txt && !/\s/.test(txt)) {
-                            const re = buildRegex(
-                                txt,
-                                plugin.settings.occuraCaseSensitive,
-                                /*wholeWord*/ false,
-                            );
-                            this.searchVisibleRanges(re, selectedTextDecoration, builder);
+                            const re = buildRegex(txt, plugin.settings.occuraCaseSensitive, false);
+                            this.collectVisibleMatches(re, selectedTextDecoration, matches, addedSpans);
                             this.updateStatusBar(txt);
                         } else {
                             this.updateStatusBar('');
@@ -102,52 +111,64 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
                     }
                 }
 
-                /* --- highlight keywords from the user list --- */
+                /* --- class-based keywords --- */
                 if (
                     plugin.settings.occuraPluginEnabled &&
-                    plugin.settings.autoKeywordsHighlightEnabled
+                    plugin.settings.autoKeywordsHighlightEnabled &&
+                    Array.isArray(plugin.settings.keywordGroups)
                 ) {
-                    const words = plugin.settings.keywords
-                        .map(k => k.trim())
-                        .filter(k => k !== '');
+                    for (const group of plugin.settings.keywordGroups) {
+                        if (!group?.enabled) continue;
 
-                    if (words.length) {
-                        const regexes = words.map(word =>
-                            buildRegex(
-                                word,
-                                plugin.settings.keywordsCaseSensitive,
-                                /*wholeWord*/ true,
-                            ),
-                        );
-                        regexes.forEach(re =>
-                            this.searchVisibleRanges(re, keywordDecoration, builder),
-                        );
+                        const words = (group.keywords ?? [])
+                            .map(w => w.trim())
+                            .filter(Boolean);
+
+                        if (words.length === 0) continue;
+
+                        const deco = this.getGroupDecoration(group.id);
+                        for (const w of words) {
+                            const re = buildRegex(w, !!group.caseSensitive, true);
+                            this.collectVisibleMatches(re, deco, matches, addedSpans);
+                        }
                     }
                 }
+
+                /* --- sort THEN add to builder --- */
+                matches.sort((a, b) => (a.from - b.from) || (a.startSide - b.startSide) || (a.to - b.to));
+
+                const builder = new RangeSetBuilder<Decoration>();
+                for (const m of matches) builder.add(m.from, m.to, m.deco);
 
                 return builder.finish();
             }
 
-            /* Search every visible range with `re` and add decorations to `builder`. */
-            private searchVisibleRanges(
+            /** Collect matches (do not add directly). Keeps them sorted later. */
+            private collectVisibleMatches(
                 re: RegExp,
                 deco: Decoration,
-                builder: RangeSetBuilder<Decoration>,
+                out: { from: number; to: number; deco: Decoration; startSide: number }[],
+                addedSpans: Set<string>,
             ) {
+                const startSide = (deco as any)?.spec?.startSide ?? 0; // default 0
                 const { state } = this.view;
+
                 for (const { from, to } of this.view.visibleRanges) {
                     const text = state.doc.sliceString(from, to);
+                    re.lastIndex = 0; // important for /g
                     let m: RegExpExecArray | null;
                     while ((m = re.exec(text))) {
-                        const start = from + m.index;
-                        const end = start + m[0].length;
-                        builder.add(start, end, deco);
+                        const s = from + m.index;
+                        const e = s + m[0].length;
+                        const key = `${s}:${e}`;
+                        if (addedSpans.has(key)) continue; // avoid duplicate exact spans
+                        addedSpans.add(key);
+                        out.push({ from: s, to: e, deco, startSide });
                         foundCount++;
                     }
                 }
             }
 
-            /* Write “Occura found: …” into the status bar (or clear it). */
             private updateStatusBar(message: string) {
                 if (
                     plugin.statusBarOccurrencesNumber &&

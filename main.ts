@@ -185,16 +185,28 @@ export default class OccuraPlugin extends Plugin {
 
     // Method to dynamic update the highlight style based on settings
     updateHighlightStyle() {
-        if (this.styleEl) {
-            this.styleEl.remove();
-        }
+        // remove previous style tag
+        if (this.styleEl) this.styleEl.remove();
+
+        const groups = Array.isArray(this.settings.keywordGroups)
+            ? this.settings.keywordGroups
+            : [];
+
+        const css =
+            [
+                // selection highlight
+                `.found-occurrence { background-color: ${this.settings.highlightColorOccurrences}; }`,
+                // per-class colors (works whether you include 'keyword-occurrence' or not)
+                ...groups.map(g => `.occura-kw-${g.id} { background-color: ${g.color} !important; }`),
+                ...groups.map(g => `.keyword-occurrence.occura-kw-${g.id} { background-color: ${g.color} !important; }`),
+            ].join('\n');
+
         this.styleEl = document.createElement('style');
-        this.styleEl.textContent = `
-        .found-occurrence {background-color: ${this.settings.highlightColorOccurrences};}
-        .keyword-occurrence { background-color: ${this.settings.highlightColorKeywords}; }
-    `;
+        this.styleEl.id = 'occura-style';
+        this.styleEl.textContent = css;
         document.head.appendChild(this.styleEl);
     }
+
 
     // Force all editors to update
     updateEditors() {

@@ -1,7 +1,7 @@
 {
 	"id": "occura-word-highlighter",
 	"name": "Occura",
-	"version": "1.4.1",
+	"version": "1.5.0",
 	"minAppVersion": "0.15.0",
 	"description": "Find and highlight all occurrences of selected text in notes, similar to Notepad++ or IDEs.",
 	"author": "Alexey Sedoykin",
