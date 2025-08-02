@@ -4,6 +4,13 @@
 I couldn't find the usual functionality that I used in Notepad++ or different IDEs, where double-clicking on a word immediately showed me how often it appears in the open document.
 
 ### Features
+#### Release 1.5.0
+New features has been added:
+
+1. You can create classes of words with individual colors, for example terms from different domains, parasite words, etc
+
+<img width="1094" height="950" alt="image" src="https://github.com/user-attachments/assets/416f6e73-9175-43e0-81d0-d432d252cfa2" />
+
 #### Release 1.4.1:
 The issues with selecting special chartes like $ # % @ has beein fixed, thanks dear [Logovaz26](https://github.com/Logovaz26)
 #### Release 1.4.0:
