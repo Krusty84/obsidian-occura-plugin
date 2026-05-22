@@ -1,3 +1,7 @@
+.found-occurrence {
+    background-color: var(--occura-highlight-color-occurrences, #ffff00);
+}
+
 .highlight-toggle-icon {
     cursor: pointer;
     opacity: 1;
@@ -5,6 +9,10 @@
 
 .highlight-toggle-icon.is-disabled {
     opacity: 0.5;
+}
+
+.occura-hidden-input {
+    display: none;
 }
 
 .occura-keywords-container {

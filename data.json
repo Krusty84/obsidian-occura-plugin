@@ -1,10 +1,23 @@
 {
-  "highlightColorOccurrences": "#FFFF00",
+  "highlightColorOccurrences": "#6beeff",
   "highlightColorKeywords": "#bdfc64",
-  "occuraPluginEnabled": true,
-  "occuraCaseSensitive": false,
-  "occuraPluginEnabledHotKey": "",
+  "occuraPluginEnabled": false,
+  "occuraPluginEnabledHotKey": "Mod+Shift+E",
   "statusBarOccurrencesNumberEnabled": true,
-  "autoKeywordsHighlightEnabled": false,
-  "keywordsCaseSensitive": false
+  "keywords": [],
+  "autoKeywordsHighlightEnabled": true,
+  "keywordsCaseSensitive": false,
+  "occuraCaseSensitive": false,
+  "keywordGroups": [
+    {
+      "id": "e86be6a5-1905-4142-85cd-1f3f0e3ef6be",
+      "name": "Spec",
+      "color": "#ee2098",
+      "keywords": [
+        "tech"
+      ],
+      "enabled": true,
+      "caseSensitive": false
+    }
+  ]
 }

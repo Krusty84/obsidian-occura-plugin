@@ -48,14 +48,19 @@ function buildRegex(
 
 let foundCount = 0; // shown in the status bar
 
+function getCodeMirrorEditor(editor: unknown): EditorView | undefined {
+    if (typeof editor !== 'object' || editor === null) return undefined;
+
+    const cm = Reflect.get(editor, 'cm');
+    return cm instanceof EditorView ? cm : undefined;
+}
+
 export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
     return ViewPlugin.fromClass(
         class {
             decorations: DecorationSet;
             lastEnabled = plugin.settings.occuraPluginEnabled;
             lastAutoHL = plugin.settings.autoKeywordsHighlightEnabled;
-
-            private groupDecoCache = new Map<string, Decoration>();
 
             constructor(public view: EditorView) {
                 this.decorations = this.buildDecorations();
@@ -73,16 +78,14 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
                 }
             }
 
-            private getGroupDecoration(groupId: string): Decoration {
-                let deco = this.groupDecoCache.get(groupId);
-                if (!deco) {
-                    deco = Decoration.mark({
-                        class: `occura-kw-${groupId}`,
-                        priority: 50,
-                    });
-                    this.groupDecoCache.set(groupId, deco);
-                }
-                return deco;
+            private getGroupDecoration(color: string): Decoration {
+                return Decoration.mark({
+                    class: 'keyword-occurrence',
+                    attributes: {
+                        style: `background-color: ${color};`,
+                    },
+                    priority: 50,
+                });
             }
 
             private buildDecorations() {
@@ -126,7 +129,7 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
 
                         if (words.length === 0) continue;
 
-                        const deco = this.getGroupDecoration(group.id);
+                        const deco = this.getGroupDecoration(group.color);
                         for (const w of words) {
                             const re = buildRegex(w, !!group.caseSensitive, true);
                             this.collectVisibleMatches(re, deco, matches, addedSpans);
@@ -150,7 +153,7 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
                 out: { from: number; to: number; deco: Decoration; startSide: number }[],
                 addedSpans: Set<string>,
             ) {
-                const startSide = (deco as any)?.spec?.startSide ?? 0; // default 0
+                const startSide = 0;
                 const { state } = this.view;
 
                 for (const { from, to } of this.view.visibleRanges) {
@@ -188,7 +191,7 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
 /**
  * Permanently mark all occurrences of selected text using ==text== syntax
  */
-export function setPermanentHighlightOccurrences(context: any) {
+export function setPermanentHighlightOccurrences(context: OccuraPlugin) {
     const view = context.app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) return new Notice('No active editor');
 
@@ -204,7 +207,8 @@ export function setPermanentHighlightOccurrences(context: any) {
 
     if (!matches.length) return new Notice('No occurrences found.');
 
-    const cm = (editor as any).cm as EditorView;
+    const cm = getCodeMirrorEditor(editor);
+    if (!cm) return new Notice('No active CodeMirror editor');
     const changes = matches
         .reverse()
         .map(r => ({ from: r.from, to: r.to, insert: `==${doc.slice(r.from, r.to)}==` }));
@@ -215,7 +219,7 @@ export function setPermanentHighlightOccurrences(context: any) {
 /**
  * Remove permanent ==text== highlighting for selected text
  */
-export function removePermanentHighlightOccurrences(context: any) {
+export function removePermanentHighlightOccurrences(context: OccuraPlugin) {
     const view = context.app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) return new Notice('No active editor');
 
@@ -231,7 +235,8 @@ export function removePermanentHighlightOccurrences(context: any) {
 
     if (!matches.length) return new Notice('No highlighted occurrences found.');
 
-    const cm = (editor as any).cm as EditorView;
+    const cm = getCodeMirrorEditor(editor);
+    if (!cm) return new Notice('No active CodeMirror editor');
     const changes = matches.reverse().map(r => ({
         from: r.from,
         to: r.to,
@@ -246,7 +251,7 @@ export function removePermanentHighlightOccurrences(context: any) {
 /**
  * Add a '#' tag before each occurrence of the selected word
  */
-export function createTagForOccurrences(context: any) {
+export function createTagForOccurrences(context: OccuraPlugin) {
     const view = context.app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) return new Notice('No active editor');
 
@@ -274,7 +279,7 @@ export function createTagForOccurrences(context: any) {
 /**
  * Remove '#' tags from occurrences of the selected word
  */
-export function removeTagFromOccurrences(context: any) {
+export function removeTagFromOccurrences(context: OccuraPlugin) {
     const view = context.app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) return new Notice('No active editor');
 

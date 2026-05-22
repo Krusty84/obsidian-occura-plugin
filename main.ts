@@ -11,10 +11,9 @@ import {parseHotkeyString} from 'src/utils'
 
 export default class OccuraPlugin extends Plugin {
     settings: OccuraPluginSettings;
-    styleEl: HTMLStyleElement;
     highlightCompartment: Compartment;
-    statusBarOccurrencesNumber: any;
-    keyHandler: (evt: KeyboardEvent) => void;
+    statusBarOccurrencesNumber: HTMLElement | null = null;
+    keyHandler: ((evt: KeyboardEvent) => void) | null = null;
 
     async onload() {
         await this.loadSettings();
@@ -154,7 +153,7 @@ export default class OccuraPlugin extends Plugin {
     // Toggle highlighting functionality
     toggleHighlighting() {
         this.settings.occuraPluginEnabled = !this.settings.occuraPluginEnabled;
-        this.saveSettings();
+        void this.saveSettings();
         // Force the editor to re-render
         this.updateEditors();
         // Update the icon in the title bar
@@ -165,7 +164,7 @@ export default class OccuraPlugin extends Plugin {
     // Toggle keywords highlighting functionality
     toggleKeywordHighlighting() {
         this.settings.autoKeywordsHighlightEnabled = !this.settings.autoKeywordsHighlightEnabled;
-        this.saveSettings();
+        void this.saveSettings();
         // Force the editor to re-render
         this.updateEditors();
         // Optional: Show a notice
@@ -185,26 +184,12 @@ export default class OccuraPlugin extends Plugin {
 
     // Method to dynamic update the highlight style based on settings
     updateHighlightStyle() {
-        // remove previous style tag
-        if (this.styleEl) this.styleEl.remove();
-
-        const groups = Array.isArray(this.settings.keywordGroups)
-            ? this.settings.keywordGroups
-            : [];
-
-        const css =
-            [
-                // selection highlight
-                `.found-occurrence { background-color: ${this.settings.highlightColorOccurrences}; }`,
-                // per-class colors (works whether you include 'keyword-occurrence' or not)
-                ...groups.map(g => `.occura-kw-${g.id} { background-color: ${g.color} !important; }`),
-                ...groups.map(g => `.keyword-occurrence.occura-kw-${g.id} { background-color: ${g.color} !important; }`),
-            ].join('\n');
-
-        this.styleEl = document.createElement('style');
-        this.styleEl.id = 'occura-style';
-        this.styleEl.textContent = css;
-        document.head.appendChild(this.styleEl);
+        for (const doc of this.getWorkspaceDocuments()) {
+            doc.documentElement.style.setProperty(
+                '--occura-highlight-color-occurrences',
+                this.settings.highlightColorOccurrences,
+            );
+        }
     }
 
 
@@ -215,7 +200,7 @@ export default class OccuraPlugin extends Plugin {
             .filter(view => view instanceof MarkdownView) as MarkdownView[];
         for (const view of markdownViews) {
             // Get the CodeMirror EditorView instance
-            const editorView = (view.editor as any).cm as EditorView;
+            const editorView = (view.editor as { cm?: EditorView }).cm;
             if (editorView) {
                 // Reconfigure the compartment with the updated plugin
                 editorView.dispatch({
@@ -236,7 +221,7 @@ export default class OccuraPlugin extends Plugin {
     // Add an icon to the editor's title bar
     addTitleBarIcon(leaf: WorkspaceLeaf) {
         if (!(leaf.view instanceof MarkdownView)) return;
-        const view = leaf.view as MarkdownView;
+        const view = leaf.view;
         // Remove existing icon if any
         const existingIcon = view.containerEl.querySelector('.highlight-toggle-icon');
         if (existingIcon) {
@@ -244,34 +229,36 @@ export default class OccuraPlugin extends Plugin {
         }
 
         // Create the icon element
-        const iconEl = document.createElement('div');
-        iconEl.addClass('highlight-toggle-icon', 'clickable-icon');
-
-        // Set the icon based on the current state
-        this.updateIconElement(iconEl);
-
-        // Add click handler
-        iconEl.addEventListener('click', () => {
-            this.toggleHighlighting();
-        });
-
-        // Add the icon to the title bar
         const titleBar = view.containerEl.querySelector('.view-header');
         if (titleBar) {
-            // Insert the icon before the other icons
             const iconContainer = titleBar.querySelector('.view-actions');
             if (iconContainer) {
-                iconContainer.insertBefore(iconEl, iconContainer.firstChild);
+                const iconEl = iconContainer.createDiv({
+                    cls: 'highlight-toggle-icon clickable-icon',
+                    prepend: true,
+                });
+
+                // Set the icon based on the current state
+                this.updateIconElement(iconEl);
+
+                // Add click handler
+                iconEl.addEventListener('click', () => {
+                    this.toggleHighlighting();
+                });
             }
         }
     }
 
     // Update all icons in the title bars
     updateAllTitleBarIcons() {
-        const iconEls = document.querySelectorAll('.highlight-toggle-icon');
-        iconEls.forEach(iconEl => {
-            this.updateIconElement(iconEl as HTMLElement);
-        });
+        const markdownLeaves = this.app.workspace.getLeavesOfType('markdown');
+        for (const leaf of markdownLeaves) {
+            if (!(leaf.view instanceof MarkdownView)) continue;
+            const iconEl = leaf.view.containerEl.querySelector('.highlight-toggle-icon');
+            if (iconEl instanceof HTMLElement) {
+                this.updateIconElement(iconEl);
+            }
+        }
     }
 
     // Update the icon element based on the current state
@@ -294,17 +281,29 @@ export default class OccuraPlugin extends Plugin {
     }
 
     onunload() {
-        window.removeEventListener('keydown', this.keyHandler, true);
-        // Clean up the style element when the plugin is unloaded
-        if (this.styleEl) {
-            this.styleEl.remove();
+        if (this.keyHandler) {
+            window.removeEventListener('keydown', this.keyHandler, true);
+        }
+        for (const doc of this.getWorkspaceDocuments()) {
+            doc.documentElement.style.removeProperty('--occura-highlight-color-occurrences');
         }
         // Remove the icon from all title bars
-        const icons = document.querySelectorAll('.highlight-toggle-icon');
-        icons.forEach(icon => icon.remove());
+        const markdownLeaves = this.app.workspace.getLeavesOfType('markdown');
+        for (const leaf of markdownLeaves) {
+            if (!(leaf.view instanceof MarkdownView)) continue;
+            const icon = leaf.view.containerEl.querySelector('.highlight-toggle-icon');
+            icon?.remove();
+        }
+    }
+
+    private getWorkspaceDocuments(): Document[] {
+        const docs = new Set<Document>([activeDocument]);
+        docs.add(this.app.workspace.containerEl.doc);
+
+        this.app.workspace.iterateAllLeaves(leaf => {
+            docs.add(leaf.view.containerEl.doc);
+        });
+
+        return Array.from(docs);
     }
 }
-
-
-
-
