@@ -8,7 +8,7 @@ I couldn't find the usual functionality that I used in Notepad++ or different ID
 
 #### Release 1.5.1
 
-No new features. Various minor issues with Obsidian's expansion quality rating system have been resolved (I hope :)).
+No new features. Various minor issues with Obsidian's expansion quality rating system have been resolved, I hope.
 I'm preparing for more functionality, so stay tuned for updates.
 
 #### Release 1.5.0
