@@ -3,6 +3,8 @@
   "highlightColorKeywords": "#bdfc64",
   "occuraPluginEnabled": true,
   "occuraPluginEnabledHotKey": "Mod+Shift+E",
+  "nextOccurrenceHotkeys": "Mod+Shift+D",
+  "previousOccurrenceHotkeys": "Mod+Shift+R",
   "statusBarOccurrencesNumberEnabled": true,
   "keywords": [],
   "autoKeywordsHighlightEnabled": true,
@@ -16,7 +18,8 @@
       "color": "#ee2098",
       "keywords": [
         "tech",
-        "cultivate"
+        "cultivate",
+        "energy"
       ],
       "enabled": true,
       "caseSensitive": false

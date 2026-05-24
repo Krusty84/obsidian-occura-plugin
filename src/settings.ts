@@ -1,5 +1,16 @@
-import { App, Modal, PluginSettingTab, Setting, TextComponent } from "obsidian";
+import {
+  App,
+  Modal,
+  Platform,
+  PluginSettingTab,
+  Setting,
+  TextComponent,
+} from "obsidian";
 import type OccuraPlugin from "main";
+import {
+  getDefaultNextOccurrenceHotkey,
+  getDefaultPreviousOccurrenceHotkey,
+} from "src/utils";
 
 export interface KeywordGroup {
   id: string;
@@ -16,6 +27,8 @@ export interface OccuraPluginSettings {
   highlightColorKeywords: string;
   occuraPluginEnabled: boolean;
   occuraPluginEnabledHotKey: string;
+  nextOccurrenceHotkeys: string;
+  previousOccurrenceHotkeys: string;
   statusBarOccurrencesNumberEnabled: boolean;
   keywords: string[];
   autoKeywordsHighlightEnabled: boolean;
@@ -31,6 +44,8 @@ export const DEFAULT_SETTINGS: OccuraPluginSettings = {
   highlightColorKeywords: "#bdfc64",
   occuraPluginEnabled: true,
   occuraPluginEnabledHotKey: "",
+  nextOccurrenceHotkeys: getDefaultNextOccurrenceHotkey(),
+  previousOccurrenceHotkeys: getDefaultPreviousOccurrenceHotkey(),
   statusBarOccurrencesNumberEnabled: true,
   keywords: [],
   autoKeywordsHighlightEnabled: false,
@@ -45,7 +60,11 @@ class ConfirmModal extends Modal {
   private readonly message: string;
   private readonly onSubmit: (confirmed: boolean) => void;
 
-  constructor(app: App, message: string, onSubmit: (confirmed: boolean) => void) {
+  constructor(
+    app: App,
+    message: string,
+    onSubmit: (confirmed: boolean) => void,
+  ) {
     super(app);
     this.message = message;
     this.onSubmit = onSubmit;
@@ -58,10 +77,13 @@ class ConfirmModal extends Modal {
 
     new Setting(contentEl)
       .addButton((btn) => {
-        btn.setButtonText("Delete").setWarning().onClick(() => {
-          this.close();
-          this.onSubmit(true);
-        });
+        btn
+          .setButtonText("Delete")
+          .setWarning()
+          .onClick(() => {
+            this.close();
+            this.onSubmit(true);
+          });
       })
       .addButton((btn) => {
         btn.setButtonText("Cancel").onClick(() => {
@@ -80,6 +102,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
   plugin: OccuraPlugin;
   // track open state of the keyword section
   private keywordSectionOpen = false;
+  private navigationSectionOpen = false;
   // keyword class sections
   private groupOpen: Record<string, boolean> = {};
 
@@ -150,7 +173,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
       );
 
     new Setting(generalDetails)
-      .setName("Hotkey")
+      .setName("Enadle/Disable hotkey")
       .setDesc("Click and press the desired hotkey combination.")
       .addText((text) => {
         text
@@ -187,6 +210,70 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
           });
       });
 
+    const navigationDetails = containerEl.createEl("details");
+    navigationDetails.open = this.navigationSectionOpen;
+    navigationDetails.createEl("summary", { text: "Navigation" });
+    navigationDetails.addEventListener("toggle", () => {
+      this.navigationSectionOpen = navigationDetails.open;
+    });
+
+    const nextOccurrencePlaceholder = Platform.isMacOS ? "Mod+G" : "F3";
+    const previousOccurrencePlaceholder = Platform.isMacOS
+      ? "Mod+Shift+G"
+      : "Shift+F3";
+
+    new Setting(navigationDetails)
+      .setName("Next occurrence")
+      .setDesc("Click and press the shortcut for the next occurrence command.")
+      .addText((text) => {
+        text
+          .setPlaceholder(nextOccurrencePlaceholder)
+          .setValue(this.plugin.settings.nextOccurrenceHotkeys);
+        text.inputEl.addEventListener("focus", () => (text.inputEl.value = ""));
+        text.inputEl.addEventListener("blur", () => {
+          if (!text.inputEl.value)
+            text.setValue(this.plugin.settings.nextOccurrenceHotkeys);
+        });
+        text.inputEl.addEventListener("keydown", (evt: KeyboardEvent) => {
+          evt.preventDefault();
+          evt.stopPropagation();
+          const hk = this.captureHotkey(evt);
+          text.setValue(hk);
+          this.plugin.settings.nextOccurrenceHotkeys = hk;
+          void (async () => {
+            await this.plugin.saveSettings();
+            this.plugin.updateKeyHandler();
+          })();
+        });
+      });
+
+    new Setting(navigationDetails)
+      .setName("Previous occurrence")
+      .setDesc(
+        "Click and press the shortcut for the previous occurrence command.",
+      )
+      .addText((text) => {
+        text
+          .setPlaceholder(previousOccurrencePlaceholder)
+          .setValue(this.plugin.settings.previousOccurrenceHotkeys);
+        text.inputEl.addEventListener("focus", () => (text.inputEl.value = ""));
+        text.inputEl.addEventListener("blur", () => {
+          if (!text.inputEl.value)
+            text.setValue(this.plugin.settings.previousOccurrenceHotkeys);
+        });
+        text.inputEl.addEventListener("keydown", (evt: KeyboardEvent) => {
+          evt.preventDefault();
+          evt.stopPropagation();
+          const hk = this.captureHotkey(evt);
+          text.setValue(hk);
+          this.plugin.settings.previousOccurrenceHotkeys = hk;
+          void (async () => {
+            await this.plugin.saveSettings();
+            this.plugin.updateKeyHandler();
+          })();
+        });
+      });
+
     const keywordsDetails = containerEl.createEl("details");
     keywordsDetails.open = this.keywordSectionOpen;
     keywordsDetails.createEl("summary", { text: "Keyword Highlighting" });
@@ -219,6 +306,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
         .onClick(async () => {
           Object.assign(this.plugin.settings, DEFAULT_SETTINGS);
           await this.plugin.saveSettings();
+          this.plugin.updateKeyHandler();
           this.display();
         });
     });
@@ -258,7 +346,9 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
             this.display();
           });
         ["mousedown", "click"].forEach((eventName) =>
-          btn.buttonEl.addEventListener(eventName, (event) => event.stopPropagation()),
+          btn.buttonEl.addEventListener(eventName, (event) =>
+            event.stopPropagation(),
+          ),
         );
       });
 
@@ -285,7 +375,9 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
             group.name = value || "Unnamed";
             await this.plugin.saveSettings();
             summary.empty();
-            const updatedSwatch = summary.createSpan({ cls: "occura-color-swatch" });
+            const updatedSwatch = summary.createSpan({
+              cls: "occura-color-swatch",
+            });
             updatedSwatch.setAttr(
               "style",
               `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`,
@@ -296,7 +388,9 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
         .addExtraButton((button) => {
           button.setIcon("trash").onClick(() => {
             void (async () => {
-              const confirmed = await this.confirm(`Delete class "${group.name}"?`);
+              const confirmed = await this.confirm(
+                `Delete class "${group.name}"?`,
+              );
               if (!confirmed) return;
               this.plugin.settings.keywordGroups.splice(groupIndex, 1);
               delete this.groupOpen[group.id];
@@ -358,7 +452,10 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
           const tokens = text
             .split(/[\n,]/)
             .map((token) => token.trim())
-            .filter((token) => token && !(token.startsWith('"') && token.endsWith('"')));
+            .filter(
+              (token) =>
+                token && !(token.startsWith('"') && token.endsWith('"')),
+            );
           group.keywords = tokens;
           await this.plugin.saveSettings();
           this.groupOpen[group.id] = true;
@@ -370,7 +467,9 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
         .addButton((btn) => {
           btn.setButtonText("Import Words").onClick(() => importInput.click());
           ["mousedown", "click"].forEach((eventName) =>
-            btn.buttonEl.addEventListener(eventName, (event) => event.stopPropagation()),
+            btn.buttonEl.addEventListener(eventName, (event) =>
+              event.stopPropagation(),
+            ),
           );
         })
         .addButton((btn) => {
@@ -387,7 +486,9 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
             URL.revokeObjectURL(url);
           });
           ["mousedown", "click"].forEach((eventName) =>
-            btn.buttonEl.addEventListener(eventName, (event) => event.stopPropagation()),
+            btn.buttonEl.addEventListener(eventName, (event) =>
+              event.stopPropagation(),
+            ),
           );
         })
         .addButton((btn) => {
@@ -400,7 +501,9 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
               this.display();
             });
           ["mousedown", "click"].forEach((eventName) =>
-            btn.buttonEl.addEventListener(eventName, (event) => event.stopPropagation()),
+            btn.buttonEl.addEventListener(eventName, (event) =>
+              event.stopPropagation(),
+            ),
           );
         });
 
@@ -426,7 +529,9 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
           cls: "occura-remove-button",
         });
         ["mousedown", "click"].forEach((eventName) =>
-          removeButton.addEventListener(eventName, (event) => event.stopPropagation()),
+          removeButton.addEventListener(eventName, (event) =>
+            event.stopPropagation(),
+          ),
         );
         removeButton.addEventListener("click", () => {
           group.keywords.splice(keywordIndex, 1);

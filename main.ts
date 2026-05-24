@@ -7,7 +7,14 @@ import {
     setPermanentHighlightOccurrences,
     removePermanentHighlightOccurrences, removeTagFromOccurrences, createTagForOccurrences,
 } from 'src/highlighter'
-import {parseHotkeyString} from 'src/utils'
+import {navigateOccurrence} from 'src/occurenceNavigation'
+import {
+    getDefaultNextOccurrenceHotkey,
+    getDefaultPreviousOccurrenceHotkey,
+    hotkeyMatchesEvent,
+    normalizeNavigationHotkey,
+    parseHotkeyString,
+} from 'src/utils'
 import {registerWordClassesEditorMenu} from 'src/wordClasses'
 
 export default class OccuraPlugin extends Plugin {
@@ -48,6 +55,22 @@ export default class OccuraPlugin extends Plugin {
             name: 'Toggle keyword highlighting',
             callback: () => {
                 this.toggleKeywordHighlighting();
+            }
+        });
+
+        this.addCommand({
+            id: 'go-to-next-occurrence',
+            name: 'Go to next occurrence',
+            callback: () => {
+                navigateOccurrence(this, 'next');
+            }
+        });
+
+        this.addCommand({
+            id: 'go-to-previous-occurrence',
+            name: 'Go to previous occurrence',
+            callback: () => {
+                navigateOccurrence(this, 'previous');
             }
         });
 
@@ -122,10 +145,14 @@ export default class OccuraPlugin extends Plugin {
         const hotkey = parseHotkeyString(this.settings.occuraPluginEnabledHotKey);
 
         this.keyHandler = (evt: KeyboardEvent) => {
-            const evtKey = evt.key.toUpperCase();
-
-            // Normalize special keys (e.g., "ArrowUp" -> "UP")
-            const normalizedKey = evtKey.replace('ARROW', '');
+            const target = evt.target;
+            if (
+                target instanceof HTMLInputElement ||
+                target instanceof HTMLTextAreaElement ||
+                target instanceof HTMLSelectElement
+            ) {
+                return;
+            }
 
             const modifiersMatch =
                 evt.ctrlKey === hotkey.modifiers.ctrlKey &&
@@ -133,10 +160,24 @@ export default class OccuraPlugin extends Plugin {
                 evt.altKey === hotkey.modifiers.altKey &&
                 evt.metaKey === hotkey.modifiers.metaKey;
 
-            if (modifiersMatch && normalizedKey === hotkey.key) {
+            if (modifiersMatch && evt.key.toUpperCase().replace('ARROW', '') === hotkey.key) {
                 evt.preventDefault();
                 evt.stopPropagation();
                 this.toggleHighlighting();
+                return false;
+            }
+
+            if (hotkeyMatchesEvent(evt, this.settings.nextOccurrenceHotkeys)) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                navigateOccurrence(this, 'next');
+                return false;
+            }
+
+            if (hotkeyMatchesEvent(evt, this.settings.previousOccurrenceHotkeys)) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                navigateOccurrence(this, 'previous');
                 return false;
             }
         };
@@ -146,6 +187,14 @@ export default class OccuraPlugin extends Plugin {
 
     async loadSettings() {
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        this.settings.nextOccurrenceHotkeys = normalizeNavigationHotkey(
+            this.settings.nextOccurrenceHotkeys,
+            getDefaultNextOccurrenceHotkey(),
+        );
+        this.settings.previousOccurrenceHotkeys = normalizeNavigationHotkey(
+            this.settings.previousOccurrenceHotkeys,
+            getDefaultPreviousOccurrenceHotkey(),
+        );
     }
 
     async saveSettings() {

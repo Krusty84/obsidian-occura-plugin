@@ -33,7 +33,7 @@ function escapeRegex(text: string): string {
  * If `text` is a “pure” word (only A-Z, a-z, 0-9, _) and `wholeWord` is true,
  * wrap it in `\b … \b`.  Otherwise return the plain escaped text.
  */
-function buildRegex(
+export function buildRegex(
     text: string,
     caseSensitive: boolean,
     wholeWord = true,
@@ -44,11 +44,22 @@ function buildRegex(
     return new RegExp(needBoundary ? `\\b${escaped}\\b` : escaped, flags);
 }
 
+export function isSelectionTextValidForNavigation(
+    text: string,
+    settings: OccuraPlugin['settings'],
+): boolean {
+    if (!text) return false;
+    if (/[\r\n]/.test(text)) return false;
+
+    const hasWhitespace = /\s/.test(text);
+    return !hasWhitespace || settings.allowPhraseSelectionHighlighting === true;
+}
+
 /* ---------- live-highlight extension ---------- */
 
 let foundCount = 0; // shown in the status bar
 
-function getCodeMirrorEditor(editor: unknown): EditorView | undefined {
+export function getCodeMirrorEditor(editor: unknown): EditorView | undefined {
     if (typeof editor !== 'object' || editor === null) return undefined;
 
     const cm = Reflect.get(editor, 'cm');
@@ -102,15 +113,7 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
                     const sel = state.selection.main;
                     if (!sel.empty) {
                         const txt = state.doc.sliceString(sel.from, sel.to).trim();
-                        const hasLineBreak = /[\r\n]/.test(txt);
-                        const hasWhitespace = /\s/.test(txt);
-                        const phraseAllowed = plugin.settings.allowPhraseSelectionHighlighting === true;
-                        const canHighlightSelection =
-                            !!txt &&
-                            !hasLineBreak &&
-                            (!hasWhitespace || phraseAllowed);
-
-                        if (canHighlightSelection) {
+                        if (isSelectionTextValidForNavigation(txt, plugin.settings)) {
                             const re = buildRegex(txt, plugin.settings.occuraCaseSensitive, false);
                             this.collectVisibleMatches(re, selectedTextDecoration, matches, addedSpans);
                             this.updateStatusBar(txt);
