@@ -6,6 +6,24 @@ I couldn't find the usual functionality that I used in Notepad++ or different ID
 
 ### Features
 
+#### Release 1.6.0
+
+New features has been added:
+
+1. Dynamic occurrences highlighting now works in Reading View too, not only in Source or Live Preview mode
+
+2. Word classes highlighting now works in Reading View too
+
+3. Added navigation between occurrences with new commands and configurable hotkeys:
+   - Go to next occurrence
+   - Go to previous occurrence
+
+4. Added support for highlighting repeated phrases with spaces, not only single words
+
+5. Added a new editor context menu action to quickly add the selected word into an existing word class
+
+6. Improved word classes with per-class case sensitivity and enable/disable switches
+
 #### Release 1.5.1
 
 No new features. Various minor issues with Obsidian's expansion quality rating system have been resolved, I hope.
