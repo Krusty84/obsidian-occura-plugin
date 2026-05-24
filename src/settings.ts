@@ -10,7 +10,7 @@ import type OccuraPlugin from "main";
 import {
   getDefaultNextOccurrenceHotkey,
   getDefaultPreviousOccurrenceHotkey,
-} from "src/utils";
+} from "src/helpers";
 
 export interface KeywordGroup {
   id: string;
@@ -307,6 +307,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
           Object.assign(this.plugin.settings, DEFAULT_SETTINGS);
           await this.plugin.saveSettings();
           this.plugin.updateKeyHandler();
+          this.plugin.updateEditors();
           this.display();
         });
     });
@@ -343,6 +344,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
             };
             this.plugin.settings.keywordGroups.push(group);
             await this.plugin.saveSettings();
+            this.plugin.updateEditors();
             this.display();
           });
         ["mousedown", "click"].forEach((eventName) =>
@@ -374,6 +376,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
           text.setValue(group.name).onChange(async (value) => {
             group.name = value || "Unnamed";
             await this.plugin.saveSettings();
+            this.plugin.updateEditors();
             summary.empty();
             const updatedSwatch = summary.createSpan({
               cls: "occura-color-swatch",
@@ -395,6 +398,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
               this.plugin.settings.keywordGroups.splice(groupIndex, 1);
               delete this.groupOpen[group.id];
               await this.plugin.saveSettings();
+              this.plugin.updateEditors();
               this.display();
             })();
           });
@@ -458,6 +462,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
             );
           group.keywords = tokens;
           await this.plugin.saveSettings();
+          this.plugin.updateEditors();
           this.groupOpen[group.id] = true;
           this.display();
         })();
@@ -495,8 +500,10 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
           btn
             .setButtonText("Add Word")
             .setCta()
-            .onClick(() => {
+            .onClick(async () => {
               group.keywords.push("");
+              await this.plugin.saveSettings();
+              this.plugin.updateEditors();
               this.groupOpen[group.id] = true;
               this.display();
             });
@@ -521,6 +528,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             group.keywords[keywordIndex] = value;
             await this.plugin.saveSettings();
+            this.plugin.updateEditors();
           });
         text.inputEl.addClass("occura-keyword-input");
 
@@ -537,6 +545,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
           group.keywords.splice(keywordIndex, 1);
           void (async () => {
             await this.plugin.saveSettings();
+            this.plugin.updateEditors();
             this.groupOpen[group.id] = true;
             this.display();
           })();

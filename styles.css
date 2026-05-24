@@ -46,3 +46,16 @@
 .occura-remove-button:hover {
     color: var(--text-normal);
 }
+
+.occura-keyword-reading-occurrence {
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+.occura-reading-selection-occurrence {
+    background-color: var(--occura-highlight-color-occurrences, #ffff00) !important;
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+}

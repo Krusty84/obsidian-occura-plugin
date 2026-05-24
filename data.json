@@ -1,5 +1,5 @@
 {
-  "highlightColorOccurrences": "#6beeff",
+  "highlightColorOccurrences": "#79db29",
   "highlightColorKeywords": "#bdfc64",
   "occuraPluginEnabled": true,
   "occuraPluginEnabledHotKey": "Mod+Shift+E",
@@ -19,7 +19,8 @@
       "keywords": [
         "tech",
         "cultivate",
-        "energy"
+        "energy",
+        "retreats"
       ],
       "enabled": true,
       "caseSensitive": false
@@ -30,7 +31,10 @@
       "color": "#ffd500",
       "keywords": [
         "meditation",
-        "treatments"
+        "treatments",
+        "dynamic",
+        "longevity",
+        "high"
       ],
       "enabled": true,
       "caseSensitive": false
