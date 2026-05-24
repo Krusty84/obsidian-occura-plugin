@@ -21,6 +21,7 @@ export interface OccuraPluginSettings {
   autoKeywordsHighlightEnabled: boolean;
   keywordsCaseSensitive: boolean;
   occuraCaseSensitive: boolean;
+  allowPhraseSelectionHighlighting: boolean;
   //
   keywordGroups: KeywordGroup[];
 }
@@ -35,6 +36,7 @@ export const DEFAULT_SETTINGS: OccuraPluginSettings = {
   autoKeywordsHighlightEnabled: false,
   keywordsCaseSensitive: false,
   occuraCaseSensitive: false,
+  allowPhraseSelectionHighlighting: false,
   //
   keywordGroups: [],
 };
@@ -127,6 +129,21 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.occuraCaseSensitive)
           .onChange(async (v) => {
             this.plugin.settings.occuraCaseSensitive = v;
+            await this.plugin.saveSettings();
+            this.plugin.updateEditors();
+          }),
+      );
+
+    new Setting(generalDetails)
+      .setName("Allow phrase selection highlighting")
+      .setDesc(
+        "Highlight occurrences when the selection contains spaces. Multi-line selections are ignored.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.allowPhraseSelectionHighlighting)
+          .onChange(async (v) => {
+            this.plugin.settings.allowPhraseSelectionHighlighting = v;
             await this.plugin.saveSettings();
             this.plugin.updateEditors();
           }),

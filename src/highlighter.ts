@@ -102,7 +102,15 @@ export function highlightOccurrenceExtension(plugin: OccuraPlugin) {
                     const sel = state.selection.main;
                     if (!sel.empty) {
                         const txt = state.doc.sliceString(sel.from, sel.to).trim();
-                        if (txt && !/\s/.test(txt)) {
+                        const hasLineBreak = /[\r\n]/.test(txt);
+                        const hasWhitespace = /\s/.test(txt);
+                        const phraseAllowed = plugin.settings.allowPhraseSelectionHighlighting === true;
+                        const canHighlightSelection =
+                            !!txt &&
+                            !hasLineBreak &&
+                            (!hasWhitespace || phraseAllowed);
+
+                        if (canHighlightSelection) {
                             const re = buildRegex(txt, plugin.settings.occuraCaseSensitive, false);
                             this.collectVisibleMatches(re, selectedTextDecoration, matches, addedSpans);
                             this.updateStatusBar(txt);

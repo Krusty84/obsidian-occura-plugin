@@ -8,6 +8,7 @@
   "autoKeywordsHighlightEnabled": true,
   "keywordsCaseSensitive": false,
   "occuraCaseSensitive": false,
+  "allowPhraseSelectionHighlighting": true,
   "keywordGroups": [
     {
       "id": "e86be6a5-1905-4142-85cd-1f3f0e3ef6be",
