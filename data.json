@@ -1,7 +1,7 @@
 {
   "highlightColorOccurrences": "#6beeff",
   "highlightColorKeywords": "#bdfc64",
-  "occuraPluginEnabled": false,
+  "occuraPluginEnabled": true,
   "occuraPluginEnabledHotKey": "Mod+Shift+E",
   "statusBarOccurrencesNumberEnabled": true,
   "keywords": [],
@@ -14,7 +14,19 @@
       "name": "Spec",
       "color": "#ee2098",
       "keywords": [
-        "tech"
+        "tech",
+        "cultivate"
+      ],
+      "enabled": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "02d40014-c2ba-48cb-98c6-a2a0bdc6ad11",
+      "name": "French Hard Words",
+      "color": "#ffd500",
+      "keywords": [
+        "meditation",
+        "treatments"
       ],
       "enabled": true,
       "caseSensitive": false

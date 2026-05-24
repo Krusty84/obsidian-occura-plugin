@@ -2,12 +2,12 @@ import { App, Modal, PluginSettingTab, Setting, TextComponent } from "obsidian";
 import type OccuraPlugin from "main";
 
 export interface KeywordGroup {
-  id: string; // stable id, not the name
-  name: string; // e.g., "Dirty words"
-  color: string; // e.g., "#ff0000"
-  keywords: string[]; // words in this class
-  enabled: boolean; // allow turning a class on/off
-  caseSensitive: boolean; // per-class matching
+  id: string;
+  name: string;
+  color: string;
+  keywords: string[];
+  enabled: boolean;
+  caseSensitive: boolean;
 }
 
 // Interface defining plugin settings
@@ -76,7 +76,6 @@ class ConfirmModal extends Modal {
 
 export class OccuraPluginSettingTab extends PluginSettingTab {
   plugin: OccuraPlugin;
-  keywordComponents: TextComponent[] = [];
   // track open state of the keyword section
   private keywordSectionOpen = false;
   // keyword class sections
@@ -191,217 +190,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
           });
       });
 
-    // Header with "Add Class"
-    new Setting(keywordsDetails)
-      .setName("Word classes")
-      .setDesc("Each class has a color and its own word list.")
-      .addButton((btn) => {
-        btn
-          .setButtonText("Add Class")
-          .setCta()
-          .onClick(async () => {
-            const g: KeywordGroup = {
-              id: crypto?.randomUUID?.() ?? String(Date.now()),
-              name: "New class",
-              color: "#66ccff",
-              keywords: [],
-              enabled: true,
-              caseSensitive: false,
-            };
-            this.plugin.settings.keywordGroups.push(g);
-            await this.plugin.saveSettings();
-            this.display();
-          });
-        ["mousedown", "click"].forEach((evt) =>
-          btn.buttonEl.addEventListener(evt, (e) => e.stopPropagation()),
-        );
-      });
-
-    // Render each class
-    this.plugin.settings.keywordGroups.forEach((group, gi) => {
-      const groupDetails = keywordsDetails.createEl("details");
-      groupDetails.open = this.groupOpen[group.id] ?? false;
-
-      // keep it updated
-      groupDetails.addEventListener("toggle", () => {
-        this.groupOpen[group.id] = groupDetails.open;
-      });
-
-      // Summary: swatch + name
-      const summary = groupDetails.createEl("summary");
-      const swatch = summary.createSpan({ cls: "occura-color-swatch" });
-      swatch.setAttr(
-        "style",
-        `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`,
-      );
-      summary.createSpan({ text: group.name });
-
-      // Row: name + delete
-      new Setting(groupDetails)
-        .setName("Class name")
-        .addText((t) => {
-          t.setValue(group.name).onChange(async (v) => {
-            group.name = v || "Unnamed";
-            await this.plugin.saveSettings();
-            summary.empty();
-            const sw = summary.createSpan({ cls: "occura-color-swatch" });
-            sw.setAttr(
-              "style",
-              `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`,
-            );
-            summary.createSpan({ text: group.name });
-          });
-        })
-        .addExtraButton((b) => {
-          b.setIcon("trash").onClick(() => {
-            void (async () => {
-              const confirmed = await this.confirm(`Delete class "${group.name}"?`);
-              if (!confirmed) return;
-              this.plugin.settings.keywordGroups.splice(gi, 1);
-              delete this.groupOpen[group.id];
-              await this.plugin.saveSettings();
-              this.display();
-            })();
-          });
-        });
-
-      // Row: enabled words class
-      new Setting(groupDetails)
-        .setName("Enabled")
-        .setDesc("Turn this class on or off.")
-        .addToggle((tg) => {
-          tg.setValue(group.enabled).onChange(async (v) => {
-            group.enabled = v;
-            await this.plugin.saveSettings();
-            this.plugin.updateEditors();
-          });
-        });
-
-      // Row: color
-      new Setting(groupDetails)
-        .setName("Color")
-        .setDesc("Set the color used to highlight all words occurrences.")
-        .addText((text) => {
-          text.inputEl.type = "color";
-          text.setValue(group.color).onChange(async (v) => {
-            group.color = v || "#66ccff";
-            await this.plugin.saveSettings();
-            swatch.setAttr(
-              "style",
-              `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`,
-            );
-            this.plugin.updateEditors();
-          });
-        });
-
-      // Row: case sensitive
-      new Setting(groupDetails)
-        .setName("Case sensitive")
-        .setDesc("Match words with exact case.")
-        .addToggle((t) => {
-          t.setValue(group.caseSensitive).onChange(async (v) => {
-            group.caseSensitive = v;
-            await this.plugin.saveSettings();
-            this.plugin.updateEditors();
-          });
-        });
-
-      // Import / Export / Add Word (per class)
-      const importInput = groupDetails.createEl("input", {
-        cls: "occura-hidden-input",
-      });
-      importInput.type = "file";
-      importInput.accept = ".txt";
-      importInput.addEventListener("change", (e) => {
-        e.stopPropagation();
-        void (async () => {
-          const file = (e.target as HTMLInputElement).files?.[0];
-          if (!file) return;
-          const text = await file.text();
-          const tokens = text
-            .split(/[\n,]/)
-            .map((t) => t.trim())
-            .filter((t) => t && !(t.startsWith('"') && t.endsWith('"')));
-          group.keywords = tokens;
-          await this.plugin.saveSettings();
-          this.groupOpen[group.id] = true; // keep it open
-          this.display();
-        })();
-      });
-
-      new Setting(groupDetails)
-        .addButton((btn) => {
-          btn.setButtonText("Import Words").onClick(() => importInput.click());
-          ["mousedown", "click"].forEach((evt) =>
-            btn.buttonEl.addEventListener(evt, (e) => e.stopPropagation()),
-          );
-        })
-        .addButton((btn) => {
-          btn.setButtonText("Export Words").onClick(() => {
-            const blob = new Blob([group.keywords.join(",")], {
-              type: "text/plain",
-            });
-            const url = URL.createObjectURL(blob);
-            const a = groupDetails.createEl("a");
-            a.href = url;
-            a.download = `${group.name.replace(/\s+/g, "_")}.txt`;
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-          });
-          ["mousedown", "click"].forEach((evt) =>
-            btn.buttonEl.addEventListener(evt, (e) => e.stopPropagation()),
-          );
-        })
-        .addButton((btn) => {
-          btn
-            .setButtonText("Add Word")
-            .setCta()
-            .onClick(() => {
-              group.keywords.push("");
-              this.groupOpen[group.id] = true; // keep it open
-              this.display();
-            });
-          ["mousedown", "click"].forEach((evt) =>
-            btn.buttonEl.addEventListener(evt, (e) => e.stopPropagation()),
-          );
-        });
-
-      // Word list
-      const listContainer = groupDetails.createDiv({
-        cls: "occura-keywords-container",
-      });
-      group.keywords.forEach((kw, idx) => {
-        const row = listContainer.createDiv({
-          cls: "occura-keyword-item",
-        });
-
-        const txt = new TextComponent(row)
-          .setPlaceholder("Enter word")
-          .setValue(kw)
-          .onChange(async (v) => {
-            group.keywords[idx] = v;
-            await this.plugin.saveSettings();
-          });
-        txt.inputEl.addClass("occura-keyword-input");
-
-        const rem = row.createEl("button", {
-          text: "✕",
-          cls: "occura-remove-button",
-        });
-        ["mousedown", "click"].forEach((evt) =>
-          rem.addEventListener(evt, (e) => e.stopPropagation()),
-        );
-        rem.addEventListener("click", () => {
-          group.keywords.splice(idx, 1);
-          void (async () => {
-            await this.plugin.saveSettings();
-            this.groupOpen[group.id] = true;
-            this.display();
-          })();
-        });
-      });
-    });
+    this.renderWordClassesSettings(keywordsDetails);
 
     //
     // ── RESET TO DEFAULTS ──
@@ -428,5 +217,209 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
       keys.push(k);
     }
     return keys.join("+");
+  }
+
+  private renderWordClassesSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl)
+      .setName("Word classes")
+      .setDesc("Each class has a color and its own word list.")
+      .addButton((btn) => {
+        btn
+          .setButtonText("Add Class")
+          .setCta()
+          .onClick(async () => {
+            const group: KeywordGroup = {
+              id: crypto?.randomUUID?.() ?? String(Date.now()),
+              name: "New class",
+              color: "#66ccff",
+              keywords: [],
+              enabled: true,
+              caseSensitive: false,
+            };
+            this.plugin.settings.keywordGroups.push(group);
+            await this.plugin.saveSettings();
+            this.display();
+          });
+        ["mousedown", "click"].forEach((eventName) =>
+          btn.buttonEl.addEventListener(eventName, (event) => event.stopPropagation()),
+        );
+      });
+
+    this.plugin.settings.keywordGroups.forEach((group, groupIndex) => {
+      const groupDetails = containerEl.createEl("details");
+      groupDetails.open = this.groupOpen[group.id] ?? false;
+
+      groupDetails.addEventListener("toggle", () => {
+        this.groupOpen[group.id] = groupDetails.open;
+      });
+
+      const summary = groupDetails.createEl("summary");
+      const swatch = summary.createSpan({ cls: "occura-color-swatch" });
+      swatch.setAttr(
+        "style",
+        `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`,
+      );
+      summary.createSpan({ text: group.name });
+
+      new Setting(groupDetails)
+        .setName("Class name")
+        .addText((text) => {
+          text.setValue(group.name).onChange(async (value) => {
+            group.name = value || "Unnamed";
+            await this.plugin.saveSettings();
+            summary.empty();
+            const updatedSwatch = summary.createSpan({ cls: "occura-color-swatch" });
+            updatedSwatch.setAttr(
+              "style",
+              `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`,
+            );
+            summary.createSpan({ text: group.name });
+          });
+        })
+        .addExtraButton((button) => {
+          button.setIcon("trash").onClick(() => {
+            void (async () => {
+              const confirmed = await this.confirm(`Delete class "${group.name}"?`);
+              if (!confirmed) return;
+              this.plugin.settings.keywordGroups.splice(groupIndex, 1);
+              delete this.groupOpen[group.id];
+              await this.plugin.saveSettings();
+              this.display();
+            })();
+          });
+        });
+
+      new Setting(groupDetails)
+        .setName("Enabled")
+        .setDesc("Turn this class on or off.")
+        .addToggle((toggle) => {
+          toggle.setValue(group.enabled).onChange(async (value) => {
+            group.enabled = value;
+            await this.plugin.saveSettings();
+            this.plugin.updateEditors();
+          });
+        });
+
+      new Setting(groupDetails)
+        .setName("Color")
+        .setDesc("Set the color used to highlight all words occurrences.")
+        .addText((text) => {
+          text.inputEl.type = "color";
+          text.setValue(group.color).onChange(async (value) => {
+            group.color = value || "#66ccff";
+            await this.plugin.saveSettings();
+            swatch.setAttr(
+              "style",
+              `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`,
+            );
+            this.plugin.updateEditors();
+          });
+        });
+
+      new Setting(groupDetails)
+        .setName("Case sensitive")
+        .setDesc("Match words with exact case.")
+        .addToggle((toggle) => {
+          toggle.setValue(group.caseSensitive).onChange(async (value) => {
+            group.caseSensitive = value;
+            await this.plugin.saveSettings();
+            this.plugin.updateEditors();
+          });
+        });
+
+      const importInput = groupDetails.createEl("input", {
+        cls: "occura-hidden-input",
+      });
+      importInput.type = "file";
+      importInput.accept = ".txt";
+      importInput.addEventListener("change", (event) => {
+        event.stopPropagation();
+        void (async () => {
+          const file = (event.target as HTMLInputElement).files?.[0];
+          if (!file) return;
+          const text = await file.text();
+          const tokens = text
+            .split(/[\n,]/)
+            .map((token) => token.trim())
+            .filter((token) => token && !(token.startsWith('"') && token.endsWith('"')));
+          group.keywords = tokens;
+          await this.plugin.saveSettings();
+          this.groupOpen[group.id] = true;
+          this.display();
+        })();
+      });
+
+      new Setting(groupDetails)
+        .addButton((btn) => {
+          btn.setButtonText("Import Words").onClick(() => importInput.click());
+          ["mousedown", "click"].forEach((eventName) =>
+            btn.buttonEl.addEventListener(eventName, (event) => event.stopPropagation()),
+          );
+        })
+        .addButton((btn) => {
+          btn.setButtonText("Export Words").onClick(() => {
+            const blob = new Blob([group.keywords.join(",")], {
+              type: "text/plain",
+            });
+            const url = URL.createObjectURL(blob);
+            const anchor = groupDetails.createEl("a");
+            anchor.href = url;
+            anchor.download = `${group.name.replace(/\s+/g, "_")}.txt`;
+            anchor.click();
+            anchor.remove();
+            URL.revokeObjectURL(url);
+          });
+          ["mousedown", "click"].forEach((eventName) =>
+            btn.buttonEl.addEventListener(eventName, (event) => event.stopPropagation()),
+          );
+        })
+        .addButton((btn) => {
+          btn
+            .setButtonText("Add Word")
+            .setCta()
+            .onClick(() => {
+              group.keywords.push("");
+              this.groupOpen[group.id] = true;
+              this.display();
+            });
+          ["mousedown", "click"].forEach((eventName) =>
+            btn.buttonEl.addEventListener(eventName, (event) => event.stopPropagation()),
+          );
+        });
+
+      const listContainer = groupDetails.createDiv({
+        cls: "occura-keywords-container",
+      });
+      group.keywords.forEach((keyword, keywordIndex) => {
+        const row = listContainer.createDiv({
+          cls: "occura-keyword-item",
+        });
+
+        const text = new TextComponent(row)
+          .setPlaceholder("Enter word")
+          .setValue(keyword)
+          .onChange(async (value) => {
+            group.keywords[keywordIndex] = value;
+            await this.plugin.saveSettings();
+          });
+        text.inputEl.addClass("occura-keyword-input");
+
+        const removeButton = row.createEl("button", {
+          text: "✕",
+          cls: "occura-remove-button",
+        });
+        ["mousedown", "click"].forEach((eventName) =>
+          removeButton.addEventListener(eventName, (event) => event.stopPropagation()),
+        );
+        removeButton.addEventListener("click", () => {
+          group.keywords.splice(keywordIndex, 1);
+          void (async () => {
+            await this.plugin.saveSettings();
+            this.groupOpen[group.id] = true;
+            this.display();
+          })();
+        });
+      });
+    });
   }
 }

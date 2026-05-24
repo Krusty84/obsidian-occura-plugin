@@ -8,6 +8,7 @@ import {
     removePermanentHighlightOccurrences, removeTagFromOccurrences, createTagForOccurrences,
 } from 'src/highlighter'
 import {parseHotkeyString} from 'src/utils'
+import {registerWordClassesEditorMenu} from 'src/wordClasses'
 
 export default class OccuraPlugin extends Plugin {
     settings: OccuraPluginSettings;
@@ -98,6 +99,7 @@ export default class OccuraPlugin extends Plugin {
             },
         });
 
+        registerWordClassesEditorMenu(this);
 
         // Add icon to the editor title bar when a new leaf is created
         this.registerEvent(
