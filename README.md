@@ -10,19 +10,31 @@ I couldn't find the usual functionality that I used in Notepad++ or different ID
 
 New features has been added:
 
-1. Dynamic occurrences highlighting now works in Reading View too, not only in Source or Live Preview mode
-
-2. Word classes highlighting now works in Reading View too
-
-3. Added navigation between occurrences with new commands and configurable hotkeys:
+1. Dynamic occurrences highlighting, words classes highlighting now works in Reading View too, not only in Source or Live Preview mode
+<img width="1136" height="229" alt="image" src="https://github.com/user-attachments/assets/721389e4-3511-4bd7-8534-efc91e1d07f2" />
+<br>
+<br>
+2. Added navigation between occurrences with new commands and configurable hotkeys:
    - Go to next occurrence
    - Go to previous occurrence
-
-4. Added support for highlighting repeated phrases with spaces, not only single words
-
-5. Added a new editor context menu action to quickly add the selected word into an existing word class
-
-6. Improved word classes with per-class case sensitivity and enable/disable switches
+<img width="1088" height="946" alt="image" src="https://github.com/user-attachments/assets/15118c60-09df-4031-95af-bfd883c2b50b" />
+<br>
+<br>
+<img width="699" height="126" alt="image" src="https://github.com/user-attachments/assets/e28e427b-c882-4cbc-9619-bede5b30e89e" />
+<br>
+<br>
+3. Added support for highlighting repeated phrases with spaces, not only single words
+<img width="1092" height="749" alt="image" src="https://github.com/user-attachments/assets/866f81a3-d598-466d-aa2f-587fc81b93b9" />
+<br>
+<br>
+<img width="723" height="240" alt="image" src="https://github.com/user-attachments/assets/8354833d-8501-4b18-b26c-e89cf2fec257" />
+<br>
+<br>
+4. Added a context menu action to quickly add the selected word into an existing word class
+<img width="457" height="411" alt="image" src="https://github.com/user-attachments/assets/6ed9b4e3-783b-4240-8ec7-de643a5d1901" />
+<br>
+<br>
+<img width="710" height="145" alt="image" src="https://github.com/user-attachments/assets/9786bda4-14ed-408a-b212-2fd899adc576" />
 
 #### Release 1.5.1
 
