@@ -6,6 +6,10 @@ I couldn't find the usual functionality that I used in Notepad++ or different ID
 
 ### Features
 
+#### Release 1.6.1
+
+No new features. Some issues has been fixed.
+
 #### Release 1.6.0
 
 New features has been added:
