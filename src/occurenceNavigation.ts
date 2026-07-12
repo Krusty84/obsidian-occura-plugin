@@ -25,7 +25,7 @@ type OccuraPreviewMatch = {
     range: Range;
 };
 
-function collectDocumentMatches(docText: string, re: RegExp): OccuraMatch[] {
+export function collectDocumentMatches(docText: string, re: RegExp): OccuraMatch[] {
     const matches: OccuraMatch[] = [];
     re.lastIndex = 0;
 
@@ -45,7 +45,7 @@ function collectDocumentMatches(docText: string, re: RegExp): OccuraMatch[] {
     return matches;
 }
 
-function getTargetOccurrenceIndex(
+export function getTargetOccurrenceIndex(
     matches: OccuraMatch[],
     selFrom: number,
     selTo: number,

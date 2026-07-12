@@ -19,7 +19,9 @@ src/occurenceNavigation.ts          Next/previous occurrence navigation
 src/readingViewDynamicOccurrences.ts Reading View selection-based highlighting
 src/readingViewKeywords.ts          Reading View keyword-class highlighting
 src/wordClasses.ts                  Editor context-menu integration for word classes
-src/utils.ts                        Hotkey parsing and normalization helpers
+src/helpers.ts                      Hotkey parsing and normalization helpers
+tests/                              Unit tests and the Obsidian API test double
+vitest.config.mts                   Vitest, jsdom, and source-alias configuration
 styles.css                          CSS classes used by editor and Reading View marks
 esbuild.config.mjs                  Bundle configuration for main.js
 manifest.json                       Obsidian plugin metadata
@@ -159,14 +161,28 @@ The flow is:
 
 This is a thin convenience layer over the persisted `keywordGroups` settings model.
 
-### 8. Shared helpers (`src/utils.ts`)
+### 8. Shared helpers (`src/helpers.ts`)
 
-`src/utils.ts` contains only hotkey-related helpers:
+`src/helpers.ts` contains only hotkey-related helpers:
 
 - Parse a hotkey string into modifiers and key.
 - Match keyboard events to configured hotkeys.
 - Choose platform-aware default hotkeys.
 - Normalize stored navigation hotkeys when loading settings.
+
+### 9. Unit-test harness (`tests/`, `vitest.config.mts`)
+
+The unit-test suite uses Vitest with jsdom. The configuration maps the production `main` and `src` import aliases to their repository paths and replaces the runtime-only `obsidian` package with a small test double.
+
+The tests cover:
+
+- Regex construction and selection validation.
+- Hotkey parsing, matching, defaults, and platform normalization.
+- Pure occurrence collection and next/previous target selection.
+- Reading View dynamic mark creation and cleanup.
+- Reading View keyword matching, overlap precedence, metadata, and excluded elements.
+
+DOM behavior is tested against jsdom rather than a running Obsidian instance. Full command dispatch, persistence, notices, and CodeMirror integration are not part of this unit-test layer.
 
 ## Data Flow
 
@@ -246,6 +262,10 @@ There is no reactive data layer; refresh behavior is manual.
 
 Matching is built from escaped user text and does not implement stemming, fuzzy matching, or markdown-aware tokenization. Whole-word boundaries are only applied when the selected text looks like a simple word.
 
+### Tests isolate runtime integrations
+
+Pure matching and navigation helpers are tested directly. Reading View transformations are tested through DOM behavior, while the Obsidian API is replaced with the minimal test double needed by the imported modules. This keeps the suite deterministic without introducing a broader application-service abstraction solely for testing.
+
 ## External Dependencies and Integrations
 
 ### Obsidian API
@@ -280,12 +300,20 @@ Used heavily in Reading View:
 - DOM event listeners
 - `<mark>` node insertion and unwrapping
 
+### Test tooling
+
+- Vitest runs the TypeScript unit tests.
+- jsdom provides the browser DOM APIs needed by Reading View tests.
+- `tests/mocks/obsidian.ts` supplies the small subset of Obsidian runtime values needed during unit tests.
+
 ## Build / Validation Notes
 
 - Source files are TypeScript.
 - `esbuild.config.mjs` bundles `main.ts` into `main.js`.
 - `obsidian` and CodeMirror packages are treated as externals.
 - `npm run build` performs a TypeScript check with `tsc -noEmit -skipLibCheck` before the production bundle.
+- The production TypeScript configuration includes `main.ts` and `src/**/*.ts`; test and Vitest configuration files are executed by Vitest rather than included in the plugin build.
+- `npm test` runs the unit-test suite once, while `npm run test:watch` keeps Vitest running during development.
 - `styles.css`, `manifest.json`, and the generated `main.js` are part of the shipped plugin surface.
 
 ## Known Constraints
@@ -295,4 +323,5 @@ Used heavily in Reading View:
 - Dynamic editor occurrence highlighting only scans visible editor ranges, while navigation scans the full document. Counting and navigation therefore come from different implementations.
 - Status bar output is shared by multiple features, so the latest action wins.
 - Some persisted settings fields appear to be legacy carryovers from earlier keyword implementations and are not the primary path in the current code.
+- Unit tests do not exercise the complete plugin inside Obsidian, so command wiring, real CodeMirror dispatch, workspace lifecycle behavior, and persistence still require manual or higher-level validation.
 - The repository currently includes work-in-progress changes that are ahead of the published `manifest.json` version. This document reflects the checked-out code, not only the released plugin package.

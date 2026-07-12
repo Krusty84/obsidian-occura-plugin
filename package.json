@@ -6,6 +6,8 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"test": "vitest run",
+		"test:watch": "vitest",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"copy-plugin": "rsync -a --delete ./ \"/Users/doykin/_ObsidianNotes_/.obsidian/plugins/$npm_package_name/\"",
 		"dev-in-plugin": "cd \"/Users/doykin/_ObsidianNotes_/.obsidian/plugins/$npm_package_name/\" && npm run dev",
@@ -19,9 +21,11 @@
 		"@typescript-eslint/eslint-plugin": "5.29.0",
 		"@typescript-eslint/parser": "5.29.0",
 		"esbuild": "0.17.3",
+		"jsdom": "^22.1.0",
 		"obsidian": "latest",
 		"tslib": "2.4.0",
-		"typescript": "4.7.4"
+		"typescript": "4.7.4",
+		"vitest": "^0.34.6"
 	},
 	"dependencies": {
 		"@codemirror/state": "^6.6.0",
