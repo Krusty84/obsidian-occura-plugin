@@ -10,6 +10,11 @@ export interface ReadingViewDynamicOccurrenceController {
   refreshDocuments(): void;
 }
 
+type SavedReadingViewSelection = {
+  anchorOffset: number;
+  focusOffset: number;
+};
+
 const EXCLUDED_READING_VIEW_SELECTOR = [
   "code",
   "pre",
@@ -67,8 +72,18 @@ class ReadingViewDynamicOccurrenceControllerImpl
       this.pendingDocument = null;
     }
 
-    for (const root of getReadingViewRoots(this.plugin)) {
-      clearReadingViewDynamicHighlights(root);
+    const wasApplyingHighlights = this.isApplyingHighlights;
+    this.isApplyingHighlights = true;
+    this.ignoreSelectionChangesUntil = Date.now() + 250;
+
+    try {
+      for (const root of getReadingViewRoots(this.plugin)) {
+        const savedSelection = captureReadingViewSelection(root);
+        clearReadingViewDynamicHighlights(root);
+        restoreReadingViewSelection(root, savedSelection);
+      }
+    } finally {
+      this.isApplyingHighlights = wasApplyingHighlights;
     }
 
     this.clearReadingViewStatus();
@@ -171,11 +186,13 @@ class ReadingViewDynamicOccurrenceControllerImpl
     this.ignoreSelectionChangesUntil = Date.now() + 250;
 
     try {
+      const savedSelection = captureReadingViewSelection(readingViewRoot);
       const count = applyReadingViewDynamicHighlights(
         readingViewRoot,
         query,
         this.plugin,
       );
+      restoreReadingViewSelection(readingViewRoot, savedSelection);
 
       if (
         this.plugin.statusBarOccurrencesNumber &&
@@ -240,6 +257,141 @@ function getReadingViewRoots(plugin: OccuraPlugin): HTMLElement[] {
 function asElement(node: Node | null): Element | null {
   if (!node) return null;
   return node instanceof Element ? node : node.parentElement;
+}
+
+function captureReadingViewSelection(
+  root: HTMLElement,
+): SavedReadingViewSelection | null {
+  const selection = root.ownerDocument.getSelection();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+    return null;
+  }
+
+  const anchorOffset = getCharacterOffset(
+    root,
+    selection.anchorNode,
+    selection.anchorOffset,
+  );
+  const focusOffset = getCharacterOffset(
+    root,
+    selection.focusNode,
+    selection.focusOffset,
+  );
+
+  if (anchorOffset === null || focusOffset === null) return null;
+
+  return {
+    anchorOffset,
+    focusOffset,
+  };
+}
+
+function getCharacterOffset(
+  root: HTMLElement,
+  node: Node | null,
+  nodeOffset: number,
+): number | null {
+  if (!node || !root.contains(node)) return null;
+
+  const range = root.ownerDocument.createRange();
+  range.selectNodeContents(root);
+
+  try {
+    range.setEnd(node, nodeOffset);
+  } catch {
+    return null;
+  }
+
+  return range.toString().length;
+}
+
+function restoreReadingViewSelection(
+  root: HTMLElement,
+  savedSelection: SavedReadingViewSelection | null,
+): void {
+  if (!savedSelection || !root.isConnected) return;
+
+  const selection = root.ownerDocument.getSelection();
+  if (!selection) return;
+
+  if (!selection.isCollapsed) {
+    const currentAnchorOffset = getCharacterOffset(
+      root,
+      selection.anchorNode,
+      selection.anchorOffset,
+    );
+    const currentFocusOffset = getCharacterOffset(
+      root,
+      selection.focusNode,
+      selection.focusOffset,
+    );
+
+    if (
+      (selection.anchorNode?.isConnected && currentAnchorOffset === null) ||
+      (selection.focusNode?.isConnected && currentFocusOffset === null)
+    ) {
+      return;
+    }
+
+    if (
+      currentAnchorOffset !== null &&
+      currentFocusOffset !== null &&
+      (currentAnchorOffset !== savedSelection.anchorOffset ||
+        currentFocusOffset !== savedSelection.focusOffset)
+    ) {
+      return;
+    }
+  }
+
+  const anchor = resolveCharacterOffset(root, savedSelection.anchorOffset);
+  const focus = resolveCharacterOffset(root, savedSelection.focusOffset);
+  if (!anchor || !focus) return;
+
+  if (typeof selection.setBaseAndExtent === "function") {
+    selection.setBaseAndExtent(
+      anchor.node,
+      anchor.offset,
+      focus.node,
+      focus.offset,
+    );
+    return;
+  }
+
+  const range = root.ownerDocument.createRange();
+  if (savedSelection.anchorOffset <= savedSelection.focusOffset) {
+    range.setStart(anchor.node, anchor.offset);
+    range.setEnd(focus.node, focus.offset);
+  } else {
+    range.setStart(focus.node, focus.offset);
+    range.setEnd(anchor.node, anchor.offset);
+  }
+
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function resolveCharacterOffset(
+  root: HTMLElement,
+  characterOffset: number,
+): { node: Text; offset: number } | null {
+  const doc = root.ownerDocument;
+  const win = doc.defaultView ?? window;
+  const walker = doc.createTreeWalker(root, win.NodeFilter.SHOW_TEXT);
+  let remaining = characterOffset;
+
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (!(node instanceof win.Text)) continue;
+
+    const length = node.nodeValue?.length ?? 0;
+    if (remaining <= length) {
+      return { node, offset: remaining };
+    }
+
+    remaining -= length;
+  }
+
+  return null;
 }
 
 function selectionTouchesCodeMirror(selection: Selection): boolean {

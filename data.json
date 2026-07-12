@@ -16,12 +16,7 @@
       "id": "e86be6a5-1905-4142-85cd-1f3f0e3ef6be",
       "name": "Spec",
       "color": "#ee2098",
-      "keywords": [
-        "tech",
-        "cultivate",
-        "energy",
-        "retreats"
-      ],
+      "keywords": ["tech", "cultivate", "energy", "retreats"],
       "enabled": true,
       "caseSensitive": false
     },
@@ -29,13 +24,7 @@
       "id": "02d40014-c2ba-48cb-98c6-a2a0bdc6ad11",
       "name": "French Hard Words",
       "color": "#ffd500",
-      "keywords": [
-        "meditation",
-        "treatments",
-        "dynamic",
-        "longevity",
-        "high"
-      ],
+      "keywords": ["meditation", "treatments", "dynamic", "longevity", "high"],
       "enabled": true,
       "caseSensitive": false
     }
