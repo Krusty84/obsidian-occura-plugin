@@ -11,7 +11,6 @@ import { EditorView } from "@codemirror/view";
 import {
   OccuraPluginSettingTab,
   OccuraPluginSettings,
-  DEFAULT_SETTINGS,
 } from "src/settings";
 import {
   highlightOccurrenceExtension,
@@ -26,14 +25,8 @@ import {
   type ReadingViewDynamicOccurrenceController,
 } from "src/readingViewDynamicOccurrences";
 import { registerKeywordReadingViewPostProcessor } from "src/readingViewKeywords";
-import {
-  getDefaultNextOccurrenceHotkey,
-  getDefaultPreviousOccurrenceHotkey,
-  hotkeyMatchesEvent,
-  normalizeNavigationHotkey,
-  parseHotkeyString,
-} from "src/helpers";
 import { registerWordClassesEditorMenu } from "src/wordClasses";
+import { migrateSettings } from "src/settingsMigration";
 
 export default class OccuraPlugin extends Plugin {
   settings: OccuraPluginSettings;
@@ -41,7 +34,6 @@ export default class OccuraPlugin extends Plugin {
   readingViewDynamicOccurrences: ReadingViewDynamicOccurrenceController | null =
     null;
   statusBarOccurrencesNumber: HTMLElement | null = null;
-  keyHandler: ((evt: KeyboardEvent) => void) | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -160,71 +152,12 @@ export default class OccuraPlugin extends Plugin {
 
     // Initial addition of the icon to all leaves
     this.addIconsToAllLeaves();
-    // Initialize the key handler
-    this.updateKeyHandler();
-  }
-
-  updateKeyHandler() {
-    if (this.keyHandler) {
-      window.removeEventListener("keydown", this.keyHandler, true);
-    }
-
-    const hotkey = parseHotkeyString(this.settings.occuraPluginEnabledHotKey);
-
-    this.keyHandler = (evt: KeyboardEvent) => {
-      const target = evt.target;
-      if (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
-
-      const modifiersMatch =
-        evt.ctrlKey === hotkey.modifiers.ctrlKey &&
-        evt.shiftKey === hotkey.modifiers.shiftKey &&
-        evt.altKey === hotkey.modifiers.altKey &&
-        evt.metaKey === hotkey.modifiers.metaKey;
-
-      if (
-        modifiersMatch &&
-        evt.key.toUpperCase().replace("ARROW", "") === hotkey.key
-      ) {
-        evt.preventDefault();
-        evt.stopPropagation();
-        this.toggleHighlighting();
-        return false;
-      }
-
-      if (hotkeyMatchesEvent(evt, this.settings.nextOccurrenceHotkeys)) {
-        evt.preventDefault();
-        evt.stopPropagation();
-        navigateOccurrence(this, "next");
-        return false;
-      }
-
-      if (hotkeyMatchesEvent(evt, this.settings.previousOccurrenceHotkeys)) {
-        evt.preventDefault();
-        evt.stopPropagation();
-        navigateOccurrence(this, "previous");
-        return false;
-      }
-    };
-
-    window.addEventListener("keydown", this.keyHandler, true);
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-    this.settings.nextOccurrenceHotkeys = normalizeNavigationHotkey(
-      this.settings.nextOccurrenceHotkeys,
-      getDefaultNextOccurrenceHotkey(),
-    );
-    this.settings.previousOccurrenceHotkeys = normalizeNavigationHotkey(
-      this.settings.previousOccurrenceHotkeys,
-      getDefaultPreviousOccurrenceHotkey(),
-    );
+    const migration = migrateSettings(await this.loadData());
+    this.settings = migration.settings;
+    if (migration.changed) await this.saveData(this.settings);
   }
 
   async saveSettings() {
@@ -386,9 +319,6 @@ export default class OccuraPlugin extends Plugin {
   }
 
   onunload() {
-    if (this.keyHandler) {
-      window.removeEventListener("keydown", this.keyHandler, true);
-    }
     this.readingViewDynamicOccurrences?.clearAll();
     for (const doc of this.getWorkspaceDocuments()) {
       doc.documentElement.style.removeProperty(

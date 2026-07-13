@@ -1,16 +1,11 @@
 import {
   App,
   Modal,
-  Platform,
   PluginSettingTab,
   Setting,
   TextComponent,
 } from "obsidian";
 import type OccuraPlugin from "main";
-import {
-  getDefaultNextOccurrenceHotkey,
-  getDefaultPreviousOccurrenceHotkey,
-} from "src/helpers";
 
 export interface KeywordGroup {
   id: string;
@@ -26,15 +21,13 @@ export interface OccuraPluginSettings {
   highlightColorOccurrences: string;
   highlightColorKeywords: string;
   occuraPluginEnabled: boolean;
-  occuraPluginEnabledHotKey: string;
-  nextOccurrenceHotkeys: string;
-  previousOccurrenceHotkeys: string;
   statusBarOccurrencesNumberEnabled: boolean;
   keywords: string[];
   autoKeywordsHighlightEnabled: boolean;
   keywordsCaseSensitive: boolean;
   occuraCaseSensitive: boolean;
   allowPhraseSelectionHighlighting: boolean;
+  minimumSelectionLength: number;
   //
   keywordGroups: KeywordGroup[];
 }
@@ -43,15 +36,13 @@ export const DEFAULT_SETTINGS: OccuraPluginSettings = {
   highlightColorOccurrences: "#FFFF00",
   highlightColorKeywords: "#bdfc64",
   occuraPluginEnabled: true,
-  occuraPluginEnabledHotKey: "",
-  nextOccurrenceHotkeys: getDefaultNextOccurrenceHotkey(),
-  previousOccurrenceHotkeys: getDefaultPreviousOccurrenceHotkey(),
   statusBarOccurrencesNumberEnabled: true,
   keywords: [],
   autoKeywordsHighlightEnabled: false,
   keywordsCaseSensitive: false,
   occuraCaseSensitive: false,
   allowPhraseSelectionHighlighting: false,
+  minimumSelectionLength: 2,
   //
   keywordGroups: [],
 };
@@ -102,7 +93,6 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
   plugin: OccuraPlugin;
   // track open state of the keyword section
   private keywordSectionOpen = false;
-  private navigationSectionOpen = false;
   // keyword class sections
   private groupOpen: Record<string, boolean> = {};
 
@@ -173,28 +163,25 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
       );
 
     new Setting(generalDetails)
-      .setName("Enadle/Disable hotkey")
-      .setDesc("Click and press the desired hotkey combination.")
+      .setName("Minimum selection length")
+      .setDesc(
+        "Ignore shorter dynamic selections to avoid expensive occurrence scans.",
+      )
       .addText((text) => {
+        text.inputEl.type = "number";
+        text.inputEl.min = "1";
+        text.inputEl.step = "1";
         text
-          .setPlaceholder("Click and press hotkey")
-          .setValue(this.plugin.settings.occuraPluginEnabledHotKey);
-        text.inputEl.addEventListener("focus", () => (text.inputEl.value = ""));
-        text.inputEl.addEventListener("blur", () => {
-          if (!text.inputEl.value)
-            text.setValue(this.plugin.settings.occuraPluginEnabledHotKey);
-        });
-        text.inputEl.addEventListener("keydown", (evt: KeyboardEvent) => {
-          evt.preventDefault();
-          evt.stopPropagation();
-          const hk = this.captureHotkey(evt);
-          text.setValue(hk);
-          this.plugin.settings.occuraPluginEnabledHotKey = hk;
-          void (async () => {
-            await this.plugin.saveSettings();
-            this.plugin.updateKeyHandler();
-          })();
-        });
+          .setValue(String(this.plugin.settings.minimumSelectionLength))
+          .onChange((value) => {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed) || parsed < 1) return;
+            this.plugin.settings.minimumSelectionLength = Math.floor(parsed);
+            void (async () => {
+              await this.plugin.saveSettings();
+              this.plugin.updateEditors();
+            })();
+          });
       });
 
     new Setting(generalDetails)
@@ -210,69 +197,9 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
           });
       });
 
-    const navigationDetails = containerEl.createEl("details");
-    navigationDetails.open = this.navigationSectionOpen;
-    navigationDetails.createEl("summary", { text: "Navigation" });
-    navigationDetails.addEventListener("toggle", () => {
-      this.navigationSectionOpen = navigationDetails.open;
-    });
-
-    const nextOccurrencePlaceholder = Platform.isMacOS ? "Mod+G" : "F3";
-    const previousOccurrencePlaceholder = Platform.isMacOS
-      ? "Mod+Shift+G"
-      : "Shift+F3";
-
-    new Setting(navigationDetails)
-      .setName("Next occurrence")
-      .setDesc("Click and press the shortcut for the next occurrence command.")
-      .addText((text) => {
-        text
-          .setPlaceholder(nextOccurrencePlaceholder)
-          .setValue(this.plugin.settings.nextOccurrenceHotkeys);
-        text.inputEl.addEventListener("focus", () => (text.inputEl.value = ""));
-        text.inputEl.addEventListener("blur", () => {
-          if (!text.inputEl.value)
-            text.setValue(this.plugin.settings.nextOccurrenceHotkeys);
-        });
-        text.inputEl.addEventListener("keydown", (evt: KeyboardEvent) => {
-          evt.preventDefault();
-          evt.stopPropagation();
-          const hk = this.captureHotkey(evt);
-          text.setValue(hk);
-          this.plugin.settings.nextOccurrenceHotkeys = hk;
-          void (async () => {
-            await this.plugin.saveSettings();
-            this.plugin.updateKeyHandler();
-          })();
-        });
-      });
-
-    new Setting(navigationDetails)
-      .setName("Previous occurrence")
-      .setDesc(
-        "Click and press the shortcut for the previous occurrence command.",
-      )
-      .addText((text) => {
-        text
-          .setPlaceholder(previousOccurrencePlaceholder)
-          .setValue(this.plugin.settings.previousOccurrenceHotkeys);
-        text.inputEl.addEventListener("focus", () => (text.inputEl.value = ""));
-        text.inputEl.addEventListener("blur", () => {
-          if (!text.inputEl.value)
-            text.setValue(this.plugin.settings.previousOccurrenceHotkeys);
-        });
-        text.inputEl.addEventListener("keydown", (evt: KeyboardEvent) => {
-          evt.preventDefault();
-          evt.stopPropagation();
-          const hk = this.captureHotkey(evt);
-          text.setValue(hk);
-          this.plugin.settings.previousOccurrenceHotkeys = hk;
-          void (async () => {
-            await this.plugin.saveSettings();
-            this.plugin.updateKeyHandler();
-          })();
-        });
-      });
+    new Setting(generalDetails)
+      .setName("Keyboard shortcuts")
+      .setDesc("Configure Occura commands in Obsidian Settings → Hotkeys.");
 
     const keywordsDetails = containerEl.createEl("details");
     keywordsDetails.open = this.keywordSectionOpen;
@@ -306,23 +233,10 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
         .onClick(async () => {
           Object.assign(this.plugin.settings, DEFAULT_SETTINGS);
           await this.plugin.saveSettings();
-          this.plugin.updateKeyHandler();
           this.plugin.updateEditors();
           this.display();
         });
     });
-  }
-
-  captureHotkey(event: KeyboardEvent): string {
-    const keys: string[] = [];
-    if (event.ctrlKey || event.metaKey) keys.push("Mod");
-    if (event.shiftKey) keys.push("Shift");
-    if (event.altKey) keys.push("Alt");
-    const k = event.key.toUpperCase();
-    if (!["CONTROL", "SHIFT", "ALT", "META"].includes(k)) {
-      keys.push(k);
-    }
-    return keys.join("+");
   }
 
   private renderWordClassesSettings(containerEl: HTMLElement): void {
