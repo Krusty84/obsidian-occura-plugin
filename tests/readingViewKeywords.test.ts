@@ -91,6 +91,13 @@ describe("Reading View keyword classes", () => {
     expect(mark.dataset.occuraGroupName).toBe("First");
   });
 
+  it("does not apply the dynamic minimum length to keyword classes", () => {
+    const root = highlight("<p>$ $$</p>", [
+      group({ keywords: ["$"], caseSensitive: true }),
+    ]);
+    expect(root.querySelectorAll("mark")).toHaveLength(3);
+  });
+
   it("skips excluded elements and existing keyword marks", () => {
     const root = highlight(`
       <p>word</p><code>word</code><a>word</a><div class="metadata-container">word</div>

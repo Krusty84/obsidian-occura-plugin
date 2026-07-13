@@ -107,6 +107,9 @@ describe("Markdown mutation planning", () => {
     expect(mutate("word `word", "word", "add-highlight").text).toBe(
       "==word== `word",
     );
+    expect(mutate("word [word](unclosed", "word", "add-highlight").text).toBe(
+      "==word== [word](unclosed",
+    );
   });
 
   it("constructs all editor changes in one transaction", () => {

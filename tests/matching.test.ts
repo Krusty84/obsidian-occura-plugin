@@ -64,4 +64,12 @@ describe("findMatches", () => {
     expect(findMatches("😀 😀", "😀", { ...WHOLE_WORD, minimumLength: 1 })).toHaveLength(2);
     expect(findMatches("anything", "", WHOLE_WORD)).toEqual([]);
   });
+
+  it("handles a large number of matches without changing the total", () => {
+    const text = Array(20_000).fill("aa").join(" ");
+    const matches = findMatches(text, "aa", WHOLE_WORD);
+    expect(matches).toHaveLength(20_000);
+    expect(matches[0]).toEqual({ from: 0, to: 2 });
+    expect(matches[matches.length - 1].to).toBe(text.length);
+  });
 });
