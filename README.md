@@ -6,6 +6,16 @@ I couldn't find the usual functionality that I used in Notepad++ or different ID
 
 ### Features
 
+#### Release 1.6.2
+
+This release stabilizes occurrence matching and navigation across Source Mode,
+Live Preview, and Reading View. Counts now cover the complete note, Unicode word
+boundaries are supported, short selections are debounced, and permanent
+highlight/tag commands avoid protected Markdown regions.
+
+Keyboard shortcuts are configured through **Obsidian Settings → Hotkeys**. Occura
+does not install global keyboard handlers or reserve built-in Find shortcuts.
+
 #### Release 1.6.1
 
 No new features. Some issues has been fixed.
@@ -138,6 +148,8 @@ Basic functionality
 - Copy over `main.js` and `manifest.json` to your vault `/path/to/your/vault/.obsidian/plugins/obsidian-occura-plugin/`.
 - Enable plugins in Obsidian settings
 - Enable Occura Plugin in the Community Plugins tab
+
+For platform and mode verification, see [MANUAL_TESTING.md](MANUAL_TESTING.md).
 
 #### License
 

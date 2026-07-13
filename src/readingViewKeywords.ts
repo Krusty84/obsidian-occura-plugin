@@ -1,5 +1,5 @@
 import type OccuraPlugin from "main";
-import { buildRegex } from "src/highlighter";
+import { findMatches } from "src/matching";
 
 type PreparedKeyword = {
   keyword: string;
@@ -145,20 +145,14 @@ function collectMatchesForText(
   const candidates: TextMatch[] = [];
 
   for (const item of keywords) {
-    const re = buildRegex(item.keyword, item.caseSensitive, true);
-    re.lastIndex = 0;
-
-    let match: RegExpExecArray | null;
-
-    while ((match = re.exec(text))) {
-      if (match[0].length === 0) {
-        re.lastIndex++;
-        continue;
-      }
-
+    for (const match of findMatches(text, item.keyword, {
+      caseSensitive: item.caseSensitive,
+      wholeWord: true,
+      minimumLength: 1,
+    })) {
       candidates.push({
-        from: match.index,
-        to: match.index + match[0].length,
+        from: match.from,
+        to: match.to,
         color: item.color,
         groupId: item.groupId,
         groupName: item.groupName,

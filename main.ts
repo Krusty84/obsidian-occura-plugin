@@ -11,44 +11,38 @@ import { EditorView } from "@codemirror/view";
 import {
   OccuraPluginSettingTab,
   OccuraPluginSettings,
-  DEFAULT_SETTINGS,
 } from "src/settings";
 import {
+  runMarkdownMutationCommand,
+  type MarkdownMutationKind,
+} from "src/markdownMutations";
+import {
   highlightOccurrenceExtension,
-  setPermanentHighlightOccurrences,
-  removePermanentHighlightOccurrences,
-  removeTagFromOccurrences,
-  createTagForOccurrences,
-} from "src/highlighter";
-import { navigateOccurrence } from "src/occurenceNavigation";
+  type EditorOccurrenceHost,
+} from "src/editorOccurrences";
+import { navigateOccurrence } from "src/occurrenceNavigation";
 import {
-  registerReadingViewDynamicOccurrenceHighlighting,
-  type ReadingViewDynamicOccurrenceController,
-} from "src/readingViewDynamicOccurrences";
+  registerReadingViewOccurrenceHighlighting,
+  type ReadingViewOccurrenceController,
+} from "src/readingViewOccurrences";
 import { registerKeywordReadingViewPostProcessor } from "src/readingViewKeywords";
-import {
-  getDefaultNextOccurrenceHotkey,
-  getDefaultPreviousOccurrenceHotkey,
-  hotkeyMatchesEvent,
-  normalizeNavigationHotkey,
-  parseHotkeyString,
-} from "src/helpers";
 import { registerWordClassesEditorMenu } from "src/wordClasses";
+import { migrateSettings } from "src/settingsMigration";
 
-export default class OccuraPlugin extends Plugin {
+export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost {
   settings: OccuraPluginSettings;
   highlightCompartment: Compartment;
-  readingViewDynamicOccurrences: ReadingViewDynamicOccurrenceController | null =
+  readingViewOccurrences: ReadingViewOccurrenceController | null =
     null;
   statusBarOccurrencesNumber: HTMLElement | null = null;
-  keyHandler: ((evt: KeyboardEvent) => void) | null = null;
 
   async onload() {
     await this.loadSettings();
+    this.statusBarOccurrencesNumber = this.addStatusBarItem();
     // Initialize the compartment for the highlighting extension
     this.highlightCompartment = new Compartment();
-    this.readingViewDynamicOccurrences =
-      registerReadingViewDynamicOccurrenceHighlighting(this);
+    this.readingViewOccurrences =
+      registerReadingViewOccurrenceHighlighting(this);
 
     // Add the settings tab
     this.addSettingTab(new OccuraPluginSettingTab(this.app, this));
@@ -58,10 +52,6 @@ export default class OccuraPlugin extends Plugin {
       this.highlightCompartment.of(highlightOccurrenceExtension(this)),
     );
     registerKeywordReadingViewPostProcessor(this);
-
-    // Register click event to clear selection when clicking outside
-    // (It has been removed based on PR- "Multiple Conflicts #8" (by BlackUdon) in 1.3.1 version)
-    //this.registerDomEvent(document, 'click', this.handleDocumentClick.bind(this));
 
     // Add custom CSS for highlighting
     this.updateHighlightStyle();
@@ -102,49 +92,27 @@ export default class OccuraPlugin extends Plugin {
     this.addCommand({
       id: "set-permanent-highlight-occurrences",
       name: "Set permanently highlight for occurrences",
-      callback: () => {
-        if (this.settings.occuraPluginEnabled) {
-          setPermanentHighlightOccurrences(this);
-        } else {
-          new Notice("Please enable Occura");
-        }
-      },
+      editorCallback: (editor) =>
+        this.runMutationCommand(editor, "add-highlight"),
     });
 
     this.addCommand({
       id: "remove-permanent-highlight-occurrences",
       name: "Remove permanently highlight for occurrences",
-      callback: () => {
-        if (this.settings.occuraPluginEnabled) {
-          removePermanentHighlightOccurrences(this);
-        } else {
-          new Notice("Please enable Occura");
-        }
-      },
+      editorCallback: (editor) =>
+        this.runMutationCommand(editor, "remove-highlight"),
     });
 
     this.addCommand({
       id: "create-tag-for-occurrences",
       name: "Create Tag for occurrences",
-      callback: () => {
-        if (this.settings.occuraPluginEnabled) {
-          createTagForOccurrences(this);
-        } else {
-          new Notice("Please enable Occura");
-        }
-      },
+      editorCallback: (editor) => this.runMutationCommand(editor, "add-tag"),
     });
 
     this.addCommand({
       id: "remove-tag-from-occurrences",
       name: "Remove Tag for occurrences",
-      callback: () => {
-        if (this.settings.occuraPluginEnabled) {
-          removeTagFromOccurrences(this);
-        } else {
-          new Notice("Please enable Occura");
-        }
-      },
+      editorCallback: (editor) => this.runMutationCommand(editor, "remove-tag"),
     });
 
     registerWordClassesEditorMenu(this);
@@ -154,81 +122,77 @@ export default class OccuraPlugin extends Plugin {
       this.app.workspace.on("layout-change", () => {
         this.addIconsToAllLeaves();
         this.updateHighlightStyle();
-        this.readingViewDynamicOccurrences?.refreshDocuments();
+        this.readingViewOccurrences?.refreshDocuments();
+      }),
+    );
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", () => {
+        this.clearOccurrenceStatus();
       }),
     );
 
     // Initial addition of the icon to all leaves
     this.addIconsToAllLeaves();
-    // Initialize the key handler
-    this.updateKeyHandler();
-  }
-
-  updateKeyHandler() {
-    if (this.keyHandler) {
-      window.removeEventListener("keydown", this.keyHandler, true);
-    }
-
-    const hotkey = parseHotkeyString(this.settings.occuraPluginEnabledHotKey);
-
-    this.keyHandler = (evt: KeyboardEvent) => {
-      const target = evt.target;
-      if (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
-
-      const modifiersMatch =
-        evt.ctrlKey === hotkey.modifiers.ctrlKey &&
-        evt.shiftKey === hotkey.modifiers.shiftKey &&
-        evt.altKey === hotkey.modifiers.altKey &&
-        evt.metaKey === hotkey.modifiers.metaKey;
-
-      if (
-        modifiersMatch &&
-        evt.key.toUpperCase().replace("ARROW", "") === hotkey.key
-      ) {
-        evt.preventDefault();
-        evt.stopPropagation();
-        this.toggleHighlighting();
-        return false;
-      }
-
-      if (hotkeyMatchesEvent(evt, this.settings.nextOccurrenceHotkeys)) {
-        evt.preventDefault();
-        evt.stopPropagation();
-        navigateOccurrence(this, "next");
-        return false;
-      }
-
-      if (hotkeyMatchesEvent(evt, this.settings.previousOccurrenceHotkeys)) {
-        evt.preventDefault();
-        evt.stopPropagation();
-        navigateOccurrence(this, "previous");
-        return false;
-      }
-    };
-
-    window.addEventListener("keydown", this.keyHandler, true);
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-    this.settings.nextOccurrenceHotkeys = normalizeNavigationHotkey(
-      this.settings.nextOccurrenceHotkeys,
-      getDefaultNextOccurrenceHotkey(),
-    );
-    this.settings.previousOccurrenceHotkeys = normalizeNavigationHotkey(
-      this.settings.previousOccurrenceHotkeys,
-      getDefaultPreviousOccurrenceHotkey(),
-    );
+    const migration = migrateSettings(await this.loadData());
+    this.settings = migration.settings;
+    if (migration.changed) await this.saveData(this.settings);
   }
 
   async saveSettings() {
     await this.saveData(this.settings);
+  }
+
+  private runMutationCommand(
+    editor: import("obsidian").Editor,
+    kind: MarkdownMutationKind,
+  ): void {
+    if (!this.settings.occuraPluginEnabled) {
+      new Notice("Please enable Occura");
+      return;
+    }
+    runMarkdownMutationCommand(editor, kind, this.settings.occuraCaseSensitive);
+  }
+
+  clearOccurrenceStatus(): void {
+    this.statusBarOccurrencesNumber?.setText("");
+  }
+
+  isEditorViewActive(editorView: EditorView): boolean {
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    return (
+      !!activeView?.editor &&
+      (activeView.editor as { cm?: EditorView }).cm === editorView
+    );
+  }
+
+  isReadingViewActive(root: HTMLElement): boolean {
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    return (
+      activeView?.getMode() === "preview" &&
+      activeView.containerEl.querySelector(".markdown-preview-view") === root
+    );
+  }
+
+  setOccurrenceStatus(
+    query: string,
+    count: number,
+    currentIndex: number | null,
+  ): void {
+    if (
+      !this.settings.occuraPluginEnabled ||
+      !this.settings.statusBarOccurrencesNumberEnabled
+    ) {
+      this.clearOccurrenceStatus();
+      return;
+    }
+
+    const position = currentIndex === null ? "" : ` (${currentIndex + 1}/${count})`;
+    this.statusBarOccurrencesNumber?.setText(
+      `Occura found: ${query} ${count} times${position}`,
+    );
   }
 
   // Toggle highlighting functionality
@@ -238,7 +202,8 @@ export default class OccuraPlugin extends Plugin {
     // Force the editor to re-render
     this.updateEditors();
     if (!this.settings.occuraPluginEnabled) {
-      this.readingViewDynamicOccurrences?.clearAll();
+      this.readingViewOccurrences?.clearAll();
+      this.clearOccurrenceStatus();
     }
     // Update the icon in the title bar
     this.updateAllTitleBarIcons();
@@ -254,17 +219,6 @@ export default class OccuraPlugin extends Plugin {
     this.updateEditors();
     // Optional: Show a notice
     //new Notice(`Keyword highlighting ${this.settings.autoKeywordsHighlightEnabled ? 'enabled' : 'disabled'}`);
-  }
-
-  // Clear selection when clicking outside the editor
-  private handleDocumentClick(evt: MouseEvent) {
-    const target = evt.target as HTMLElement;
-    if (!target.closest(".cm-content")) {
-      const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-      if (view) {
-        view.editor.setCursor(view.editor.getCursor()); // Clear selection
-      }
-    }
   }
 
   // Method to dynamic update the highlight style based on settings
@@ -373,10 +327,6 @@ export default class OccuraPlugin extends Plugin {
     setIcon(iconEl, "highlighter");
 
     if (this.settings.occuraPluginEnabled) {
-      // If we've never added the status bar item, do it now
-      if (!this.statusBarOccurrencesNumber) {
-        this.statusBarOccurrencesNumber = this.addStatusBarItem();
-      }
       setTooltip(iconEl, "Disable highlighting");
       iconEl.removeClass("is-disabled");
     } else {
@@ -386,10 +336,8 @@ export default class OccuraPlugin extends Plugin {
   }
 
   onunload() {
-    if (this.keyHandler) {
-      window.removeEventListener("keydown", this.keyHandler, true);
-    }
-    this.readingViewDynamicOccurrences?.clearAll();
+    this.readingViewOccurrences?.clearAll();
+    this.clearOccurrenceStatus();
     for (const doc of this.getWorkspaceDocuments()) {
       doc.documentElement.style.removeProperty(
         "--occura-highlight-color-occurrences",

@@ -1,24 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  collectDocumentMatches,
   getTargetOccurrenceIndex,
-} from "src/occurenceNavigation";
-
-describe("collectDocumentMatches", () => {
-  it("collects ranges and resets a reused regex", () => {
-    const re = /one/g;
-    re.lastIndex = 4;
-
-    expect(collectDocumentMatches("one two one", re)).toEqual([
-      { from: 0, to: 3 },
-      { from: 8, to: 11 },
-    ]);
-  });
-
-  it("skips zero-length matches without looping forever", () => {
-    expect(collectDocumentMatches("abc", /(?:)/g)).toEqual([]);
-  });
-});
+} from "src/occurrenceNavigation";
 
 describe("getTargetOccurrenceIndex", () => {
   const matches = [

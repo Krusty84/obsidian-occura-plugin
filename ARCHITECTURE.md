@@ -2,326 +2,141 @@
 
 ## Overview
 
-The plugin supports both editing surfaces used by Obsidian:
+Occura highlights selected-text occurrences and configured keyword classes in
+Obsidian's Source Mode, Live Preview, and Reading View. The implementation uses
+CodeMirror decorations for editors and DOM marks for rendered Markdown. Both
+paths share one literal, Unicode-aware matching engine.
 
-- Source / Live Preview, via CodeMirror decorations.
-- Reading View, via DOM post-processing and selection-driven `<mark>` wrappers.
-
-The codebase is plugin-centric rather than layered. `main.ts` owns startup, settings lifecycle, command registration, and cross-view refresh behavior. Most feature files are thin helpers that plug back into the main plugin instance.
+`main.ts` remains the lifecycle coordinator: it loads settings, owns the single
+status bar item, registers commands and integrations, and refreshes active views.
+Matching, mutation planning, and navigation logic live in focused modules and do
+not require the plugin class unless they interact with Obsidian lifecycle state.
 
 ## Repository Structure
 
 ```text
-main.ts                             Plugin entry point and runtime wiring
-src/settings.ts                     Settings schema and settings tab UI
-src/highlighter.ts                  CodeMirror occurrence and keyword highlighting
-src/occurenceNavigation.ts          Next/previous occurrence navigation
-src/readingViewDynamicOccurrences.ts Reading View selection-based highlighting
-src/readingViewKeywords.ts          Reading View keyword-class highlighting
-src/wordClasses.ts                  Editor context-menu integration for word classes
-src/helpers.ts                      Hotkey parsing and normalization helpers
-tests/                              Unit tests and the Obsidian API test double
-vitest.config.mts                   Vitest, jsdom, and source-alias configuration
-styles.css                          CSS classes used by editor and Reading View marks
-esbuild.config.mjs                  Bundle configuration for main.js
-manifest.json                       Obsidian plugin metadata
-data.json                           Example persisted plugin settings in this repo
+main.ts                         Plugin lifecycle and registration
+src/matching.ts                 Literal Unicode-aware matching
+src/settings.ts                 Settings model and settings UI
+src/settingsMigration.ts        Persisted-data validation and migration
+src/editorOccurrences.ts        CodeMirror selection, cache, and decorations
+src/occurrenceNavigation.ts     Editor and Reading View navigation
+src/readingViewOccurrences.ts   Selection-driven Reading View marks
+src/readingViewKeywords.ts      Render-time keyword-class marks
+src/markdownMutations.ts        Markdown-aware mutation planning and commands
+src/wordClasses.ts              Editor-menu word-class integration
+tests/                          Vitest and jsdom regression coverage
+MANUAL_TESTING.md               Real-Obsidian compatibility checklist
+validate-release.mjs            Release metadata and artifact validation
 ```
 
 ## Main Runtime Components
 
-### 1. Plugin bootstrap (`main.ts`)
+### Shared matching
 
-`OccuraPlugin` extends Obsidian's `Plugin` and acts as the central coordinator.
+`findMatches` treats every query as literal text. Case sensitivity, whole-token
+boundaries, and minimum query length are explicit options. Whole-token checks use
+Unicode letters, marks, numbers, and connector punctuation, while queries such as
+`C++` and punctuation-only strings only receive boundaries on word-like edges.
 
-Its main responsibilities are:
+The matcher returns non-empty source ranges. Editor occurrences, navigation,
+Reading View marks, keyword classes, and Markdown mutations all consume those
+ranges rather than maintaining separate regular-expression loops.
 
-- Load and save persisted settings.
-- Register the CodeMirror highlighting extension through a `Compartment`.
-- Register Reading View integrations.
-- Register commands, settings UI, and editor-menu actions.
-- Keep title bar icons, status bar text, and CSS variables in sync with settings.
-- Force reconfiguration or rerendering when settings change.
+### Editor occurrences
 
-This file is the only real orchestration layer in the plugin.
+The CodeMirror view plugin debounces selection-driven work by 120 ms. Its latest
+complete-document result is cached by immutable CodeMirror document identity,
+query, and matching options. Status and navigation reuse that array. Decoration
+building uses only matches intersecting CodeMirror's visible ranges; scrolling
+therefore changes rendered marks without changing the total.
 
-### 2. Settings and persisted state (`src/settings.ts`)
+Keyword classes are scanned only in visible ranges and are not limited by the
+minimum dynamic selection length.
 
-`OccuraPluginSettings` is the single persisted state object. Important fields:
+### Reading View occurrences
 
-- `occuraPluginEnabled`: master on/off switch.
-- `occuraCaseSensitive`: affects selected-text occurrence matching.
-- `allowPhraseSelectionHighlighting`: allows spaces in selections.
-- `nextOccurrenceHotkeys` and `previousOccurrenceHotkeys`: navigation shortcuts.
-- `statusBarOccurrencesNumberEnabled`: controls status bar text.
-- `autoKeywordsHighlightEnabled`: enables keyword-class highlighting.
-- `keywordGroups[]`: current keyword-class model.
+Reading View listens for `selectionchange` and pointer lifecycle events in each
+workspace document. It performs no DOM rewrite while a pointer gesture is active,
+debounces after pointer completion, and cancels work on pointer cancellation.
 
-Each `KeywordGroup` contains:
+Eligible rendered text nodes are matched and wrapped in Occura `<mark>` elements.
+Code, links, metadata, math, form controls, and existing Occura marks are skipped.
+Logical selection offsets are captured before wrapping; an intact native selection
+is left alone, while disconnected anchors are reconstructed when possible.
 
-- Stable `id`
-- Human-readable `name`
-- Highlight `color`
-- `keywords[]`
-- `enabled`
-- `caseSensitive`
+### Markdown mutations
 
-The settings tab edits this object directly, then calls `saveSettings()` and a refresh method such as `updateEditors()` or `updateKeyHandler()`.
+Permanent highlight and tag commands first build a complete mutation plan from the
+current editor source. The planner protects frontmatter, fenced and inline code,
+links, wiki-links, embeds, HTML, and existing markup relevant to the operation.
+Unclosed or ambiguous protected constructs fail closed through a safe boundary.
 
-Note: the settings schema still contains older fields such as `keywords`, `highlightColorKeywords`, and `keywordsCaseSensitive`. In the current code, class-based keyword groups are the active model for automatic keyword highlighting.
+All planned changes are sent through one Obsidian editor transaction. This keeps
+the reported count aligned with the actual changes and allows one Undo operation
+to revert the command.
 
-### 3. Editor highlighting (`src/highlighter.ts`)
+### Settings and status lifecycle
 
-This module contains the CodeMirror-side behavior.
+Settings migration validates persisted values, defaults the minimum selection
+length to two, preserves valid keyword groups, and removes obsolete custom-hotkey
+fields. Occura registers commands only; users assign shortcuts through Obsidian's
+Hotkeys settings.
 
-Core responsibilities:
-
-- Build regexes safely from selected text or keyword values.
-- Validate whether a selection is eligible for occurrence navigation/highlighting.
-- Provide `highlightOccurrenceExtension(plugin)`, a `ViewPlugin` that rebuilds decorations when selection, document, viewport, or relevant settings change.
-- Count matches and write status text.
-
-There are two editor decoration types:
-
-- `selectedTextDecoration` for the current selection's repeated occurrences.
-- Group-specific `Decoration.mark()` instances for keyword classes.
-
-The implementation only scans `view.visibleRanges`, so editor highlighting is viewport-based rather than whole-document decoration.
-
-This file also owns text mutation commands:
-
-- Permanently wrap occurrences with `==...==`
-- Remove that wrapping
-- Prefix occurrences with `#`
-- Remove those tag prefixes
-
-Those commands operate on the active `MarkdownView` editor and mutate the note text directly.
-
-### 4. Occurrence navigation (`src/occurenceNavigation.ts`)
-
-This module implements next/previous navigation for both editor and Reading View.
-
-Behavior:
-
-- In Source / Live Preview, it reads the current CodeMirror selection, collects all document matches, computes the target index, and updates the editor selection.
-- In Reading View, it reuses or creates dynamic DOM marks, computes the next/previous mark, selects it through the browser `Selection` API, and scrolls it into view.
-
-Navigation is intentionally selection-driven. If there is no valid selection or previously highlighted Reading View query, the command stops with a notice.
-
-### 5. Reading View dynamic occurrences (`src/readingViewDynamicOccurrences.ts`)
-
-This module adds selected-text occurrence highlighting for preview mode, where CodeMirror decorations are not available.
-
-It registers document-level DOM listeners for:
-
-- `pointerdown`
-- `pointerup`
-- `pointercancel`
-- `selectionchange`
-
-The controller debounces selection handling, ignores events during its own DOM rewrites, and only reacts when the selection belongs to a `.markdown-preview-view` tree rather than CodeMirror.
-
-When active, it:
-
-1. Validates the current selection.
-2. Clears prior dynamic marks.
-3. Walks eligible text nodes.
-4. Wraps matches in `<mark class="found-occurrence occura-reading-selection-occurrence">`.
-5. Updates the shared status bar text.
-
-This module also exposes helpers used by navigation, such as:
-
-- Finding the Reading View root for a selection
-- Querying existing dynamic marks
-- Selecting a specific mark
-
-### 6. Reading View keyword highlighting (`src/readingViewKeywords.ts`)
-
-Keyword-class highlighting in Reading View is implemented separately from dynamic selection highlighting.
-
-This module registers a Markdown post processor that runs after Obsidian renders preview HTML. It:
-
-- Flattens enabled `keywordGroups` into a prepared keyword list.
-- Walks eligible text nodes in the rendered preview.
-- Finds non-overlapping matches.
-- Replaces text nodes with fragments containing `<mark class="keyword-occurrence occura-keyword-reading-occurrence">`.
-
-This is a render-time transform, not a live decoration system. Re-rendering the preview is how the plugin refreshes keyword-class highlights after settings changes.
-
-### 7. Word-class editor integration (`src/wordClasses.ts`)
-
-This module adds a context-menu entry to the editor when a single word is selected.
-
-The flow is:
-
-- User opens the editor menu on a selection.
-- Plugin offers "Add selected word to class".
-- If there is one class, the word is added immediately.
-- If there are multiple classes, a `SuggestModal` lets the user choose one.
-
-This is a thin convenience layer over the persisted `keywordGroups` settings model.
-
-### 8. Shared helpers (`src/helpers.ts`)
-
-`src/helpers.ts` contains only hotkey-related helpers:
-
-- Parse a hotkey string into modifiers and key.
-- Match keyboard events to configured hotkeys.
-- Choose platform-aware default hotkeys.
-- Normalize stored navigation hotkeys when loading settings.
-
-### 9. Unit-test harness (`tests/`, `vitest.config.mts`)
-
-The unit-test suite uses Vitest with jsdom. The configuration maps the production `main` and `src` import aliases to their repository paths and replaces the runtime-only `obsidian` package with a small test double.
-
-The tests cover:
-
-- Regex construction and selection validation.
-- Hotkey parsing, matching, defaults, and platform normalization.
-- Pure occurrence collection and next/previous target selection.
-- Reading View dynamic mark creation and cleanup.
-- Reading View keyword matching, overlap precedence, metadata, and excluded elements.
-
-DOM behavior is tested against jsdom rather than a running Obsidian instance. Full command dispatch, persistence, notices, and CodeMirror integration are not part of this unit-test layer.
+The plugin creates one status bar element during load. Only the active pane may
+publish a count. Invalid selections, active-view changes, disabling, and unload
+clear stale status.
 
 ## Data Flow
 
-### Plugin startup
+### Source Mode and Live Preview
 
-1. Obsidian loads `main.js`, which instantiates `OccuraPlugin`.
-2. `onload()` reads persisted settings with `loadData()`.
-3. `main.ts` creates a CodeMirror `Compartment` and registers the editor extension.
-4. `main.ts` registers:
-   - settings tab
-   - Reading View dynamic controller
-   - Reading View keyword post processor
-   - commands
-   - editor-menu integration
-   - layout-change listener
-5. CSS variables and title bar icons are initialized.
+1. CodeMirror reports a selection or document change.
+2. The editor integration replaces any pending debounce timer.
+3. The shared matcher scans the complete immutable document once.
+4. Status and navigation retain the complete match array.
+5. Visible ranges select the subset rendered as decorations.
 
-### Source / Live Preview occurrence highlighting
+### Reading View
 
-1. User selects text in the editor.
-2. CodeMirror triggers the Occura `ViewPlugin`.
-3. `highlighter.ts` validates the selection and builds a regex.
-4. Visible matches are converted into decorations.
-5. The status bar is updated with the count.
+1. Pointer completion or a non-pointer selection change schedules debounced work.
+2. The controller validates the selected query and active Reading View root.
+3. Eligible text nodes use the shared matcher and become DOM marks.
+4. The original selection is retained or restored, and marks become the navigation list.
 
-### Reading View occurrence highlighting
+### Permanent mutations
 
-1. User selects text in Reading View.
-2. DOM selection listeners fire in `readingViewDynamicOccurrences.ts`.
-3. The controller debounces and validates the selection.
-4. Matching text nodes are wrapped in `<mark>` elements.
-5. Navigation commands can then move through those marks.
-
-### Keyword-class updates
-
-1. User edits classes in settings or adds a word from the editor menu.
-2. The plugin saves the updated `keywordGroups`.
-3. `updateEditors()` reconfigures CodeMirror editor extensions.
-4. `rerenderReadingViews()` forces preview rerendering.
-5. Editor decorations and Reading View post-processing rebuild from the new settings.
-
-### Text mutation commands
-
-1. User selects a word in the active editor.
-2. A command in `main.ts` calls a helper from `highlighter.ts`.
-3. The helper scans the whole document text with a regex.
-4. Matching ranges are rewritten in reverse order to avoid offset drift.
+1. An Obsidian editor command supplies the active editor and retained selection.
+2. The planner identifies protected Markdown ranges.
+3. Shared matching produces candidate ranges outside protected content.
+4. The adapter applies all planned changes in one editor transaction.
 
 ## Key Design Decisions
 
-### One plugin instance owns all cross-feature state
-
-There is no separate service container or store. The plugin instance carries settings, the CodeMirror compartment, the Reading View controller, the status bar element, and the global key handler.
-
-This keeps the code small, but it also means most features depend directly on `OccuraPlugin`.
-
-### Editor and Reading View are implemented separately
-
-The plugin does not try to unify both rendering paths behind one abstraction.
-
-- Editor mode uses CodeMirror decorations.
-- Reading View uses DOM traversal and DOM rewriting.
-
-That matches Obsidian's actual runtime model and keeps each path straightforward.
-
-### Refresh is imperative
-
-Settings changes call explicit refresh methods:
-
-- `updateEditors()` for editor extension reconfiguration
-- `rerenderReadingViews()` for preview refresh
-- `refreshDocuments()` for Reading View listener registration
-
-There is no reactive data layer; refresh behavior is manual.
-
-### Regex matching is simple and local
-
-Matching is built from escaped user text and does not implement stemming, fuzzy matching, or markdown-aware tokenization. Whole-word boundaries are only applied when the selected text looks like a simple word.
-
-### Tests isolate runtime integrations
-
-Pure matching and navigation helpers are tested directly. Reading View transformations are tested through DOM behavior, while the Obsidian API is replaced with the minimal test double needed by the imported modules. This keeps the suite deterministic without introducing a broader application-service abstraction solely for testing.
+- Literal matching prevents regex metacharacters such as `$` from changing query behavior.
+- Complete editor match arrays provide correct totals; viewport filtering is a rendering optimization only.
+- A one-entry cache per editor is sufficient because cancelled rapid selections never scan.
+- Reading View uses DOM marks because CodeMirror decorations are unavailable there; mobile selection behavior still requires real-device verification.
+- Markdown mutation parsing is deliberately conservative. A safe no-op is preferred over modifying uncertain source.
+- No global keyboard listener or default F3 binding is installed.
+- No new runtime or state-management dependency is used.
 
 ## External Dependencies and Integrations
 
-### Obsidian API
+- Obsidian API: plugin lifecycle, commands, settings, editor transactions, notices, workspace events, and status bar.
+- CodeMirror: immutable documents, selections, compartments, view plugins, and decorations.
+- Browser DOM: Reading View selections, ranges, tree walking, pointer events, and marks.
+- Vitest and jsdom: deterministic unit and DOM regression tests.
 
-Used for:
+## Build and Validation
 
-- Plugin lifecycle
-- Settings UI
-- Commands
-- Workspace and leaf traversal
-- Markdown post processors
-- Notices
-- Status bar item creation
-- Editor menu integration
-
-### CodeMirror
-
-Used for:
-
-- `Compartment`-based extension reconfiguration
-- `ViewPlugin`
-- `Decoration` and `DecorationSet`
-- `EditorView` access for editor selection and document updates
-
-### Browser DOM APIs
-
-Used heavily in Reading View:
-
-- `Selection`
-- `Range`
-- `TreeWalker`
-- DOM event listeners
-- `<mark>` node insertion and unwrapping
-
-### Test tooling
-
-- Vitest runs the TypeScript unit tests.
-- jsdom provides the browser DOM APIs needed by Reading View tests.
-- `tests/mocks/obsidian.ts` supplies the small subset of Obsidian runtime values needed during unit tests.
-
-## Build / Validation Notes
-
-- Source files are TypeScript.
-- `esbuild.config.mjs` bundles `main.ts` into `main.js`.
-- `obsidian` and CodeMirror packages are treated as externals.
-- `npm run build` performs a TypeScript check with `tsc -noEmit -skipLibCheck` before the production bundle.
-- The production TypeScript configuration includes `main.ts` and `src/**/*.ts`; test and Vitest configuration files are executed by Vitest rather than included in the plugin build.
-- `npm test` runs the unit-test suite once, while `npm run test:watch` keeps Vitest running during development.
-- `styles.css`, `manifest.json`, and the generated `main.js` are part of the shipped plugin surface.
+- `npm test` runs Vitest regression tests.
+- `npm run build` type-checks and creates the production `main.js` bundle.
+- `npm run validate:release` checks synchronized package, lockfile, manifest, versions metadata, required manifest fields, and the built artifact.
+- CI runs those commands with Node 20 after `npm ci`.
 
 ## Known Constraints
 
-- The architecture is intentionally small and direct, but feature boundaries are not strict. `main.ts` is the coordination hub for most behavior.
-- Reading View highlighting rewrites rendered DOM. That is practical, but it means behavior depends on Obsidian's preview DOM structure.
-- Dynamic editor occurrence highlighting only scans visible editor ranges, while navigation scans the full document. Counting and navigation therefore come from different implementations.
-- Status bar output is shared by multiple features, so the latest action wins.
-- Some persisted settings fields appear to be legacy carryovers from earlier keyword implementations and are not the primary path in the current code.
-- Unit tests do not exercise the complete plugin inside Obsidian, so command wiring, real CodeMirror dispatch, workspace lifecycle behavior, and persistence still require manual or higher-level validation.
-- The repository currently includes work-in-progress changes that are ahead of the published `manifest.json` version. This document reflects the checked-out code, not only the released plugin package.
+- Reading View rewrites rendered DOM, so native selection behavior must still be checked on Android and iOS WebViews.
+- The conservative Markdown planner supports the protected constructs covered by regression tests; unusual plugin-defined Markdown syntax is skipped only when it resembles a protected standard construct.
+- jsdom cannot reproduce Obsidian's complete spellcheck, folding, Vim, multiple-window, or mobile gesture behavior. `MANUAL_TESTING.md` remains required before release.
