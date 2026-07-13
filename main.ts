@@ -13,11 +13,9 @@ import {
   OccuraPluginSettings,
 } from "src/settings";
 import {
-  setPermanentHighlightOccurrences,
-  removePermanentHighlightOccurrences,
-  removeTagFromOccurrences,
-  createTagForOccurrences,
-} from "src/highlighter";
+  runMarkdownMutationCommand,
+  type MarkdownMutationKind,
+} from "src/markdownMutations";
 import {
   highlightOccurrenceExtension,
   type EditorOccurrenceHost,
@@ -98,49 +96,27 @@ export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost
     this.addCommand({
       id: "set-permanent-highlight-occurrences",
       name: "Set permanently highlight for occurrences",
-      callback: () => {
-        if (this.settings.occuraPluginEnabled) {
-          setPermanentHighlightOccurrences(this);
-        } else {
-          new Notice("Please enable Occura");
-        }
-      },
+      editorCallback: (editor) =>
+        this.runMutationCommand(editor, "add-highlight"),
     });
 
     this.addCommand({
       id: "remove-permanent-highlight-occurrences",
       name: "Remove permanently highlight for occurrences",
-      callback: () => {
-        if (this.settings.occuraPluginEnabled) {
-          removePermanentHighlightOccurrences(this);
-        } else {
-          new Notice("Please enable Occura");
-        }
-      },
+      editorCallback: (editor) =>
+        this.runMutationCommand(editor, "remove-highlight"),
     });
 
     this.addCommand({
       id: "create-tag-for-occurrences",
       name: "Create Tag for occurrences",
-      callback: () => {
-        if (this.settings.occuraPluginEnabled) {
-          createTagForOccurrences(this);
-        } else {
-          new Notice("Please enable Occura");
-        }
-      },
+      editorCallback: (editor) => this.runMutationCommand(editor, "add-tag"),
     });
 
     this.addCommand({
       id: "remove-tag-from-occurrences",
       name: "Remove Tag for occurrences",
-      callback: () => {
-        if (this.settings.occuraPluginEnabled) {
-          removeTagFromOccurrences(this);
-        } else {
-          new Notice("Please enable Occura");
-        }
-      },
+      editorCallback: (editor) => this.runMutationCommand(editor, "remove-tag"),
     });
 
     registerWordClassesEditorMenu(this);
@@ -171,6 +147,17 @@ export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost
 
   async saveSettings() {
     await this.saveData(this.settings);
+  }
+
+  private runMutationCommand(
+    editor: import("obsidian").Editor,
+    kind: MarkdownMutationKind,
+  ): void {
+    if (!this.settings.occuraPluginEnabled) {
+      new Notice("Please enable Occura");
+      return;
+    }
+    runMarkdownMutationCommand(editor, kind, this.settings.occuraCaseSensitive);
   }
 
   clearOccurrenceStatus(): void {
