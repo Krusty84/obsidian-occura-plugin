@@ -53,10 +53,6 @@ export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost
     );
     registerKeywordReadingViewPostProcessor(this);
 
-    // Register click event to clear selection when clicking outside
-    // (It has been removed based on PR- "Multiple Conflicts #8" (by BlackUdon) in 1.3.1 version)
-    //this.registerDomEvent(document, 'click', this.handleDocumentClick.bind(this));
-
     // Add custom CSS for highlighting
     this.updateHighlightStyle();
 
@@ -172,6 +168,14 @@ export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost
     );
   }
 
+  isReadingViewActive(root: HTMLElement): boolean {
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    return (
+      activeView?.getMode() === "preview" &&
+      activeView.containerEl.querySelector(".markdown-preview-view") === root
+    );
+  }
+
   setOccurrenceStatus(
     query: string,
     count: number,
@@ -215,17 +219,6 @@ export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost
     this.updateEditors();
     // Optional: Show a notice
     //new Notice(`Keyword highlighting ${this.settings.autoKeywordsHighlightEnabled ? 'enabled' : 'disabled'}`);
-  }
-
-  // Clear selection when clicking outside the editor
-  private handleDocumentClick(evt: MouseEvent) {
-    const target = evt.target as HTMLElement;
-    if (!target.closest(".cm-content")) {
-      const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-      if (view) {
-        view.editor.setCursor(view.editor.getCursor()); // Clear selection
-      }
-    }
   }
 
   // Method to dynamic update the highlight style based on settings

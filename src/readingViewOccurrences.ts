@@ -198,7 +198,9 @@ class ReadingViewOccurrenceControllerImpl
       );
       restoreReadingViewSelection(readingViewRoot, savedSelection);
 
-      this.plugin.setOccurrenceStatus(query, count, null);
+      if (this.plugin.isReadingViewActive(readingViewRoot)) {
+        this.plugin.setOccurrenceStatus(query, count, null);
+      }
 
       this.lastRoot = readingViewRoot;
       this.lastQuery = query;

@@ -48,6 +48,7 @@ function createControllerPlugin(root: HTMLElement): any {
   return {
     settings: { ...DEFAULT_SETTINGS },
     clearOccurrenceStatus: vi.fn(),
+    isReadingViewActive: () => true,
     setOccurrenceStatus: vi.fn(),
     register: vi.fn(),
     registerDomEvent(target: Document, event: string, callback: EventListener) {

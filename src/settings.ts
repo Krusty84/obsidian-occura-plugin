@@ -193,6 +193,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
           .onChange(async (v) => {
             this.plugin.settings.statusBarOccurrencesNumberEnabled = v;
             await this.plugin.saveSettings();
+            if (!v) this.plugin.clearOccurrenceStatus();
             this.plugin.updateEditors();
           });
       });
