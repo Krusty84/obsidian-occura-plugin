@@ -1,11 +1,11 @@
 import type OccuraPlugin from "main";
 import { MarkdownView } from "obsidian";
 import {
-  buildRegex,
-  isSelectionTextValidForNavigation,
-} from "src/highlighter";
+  validateSelectionQuery,
+} from "src/editorOccurrences";
+import { findMatches } from "src/matching";
 
-export interface ReadingViewDynamicOccurrenceController {
+export interface ReadingViewOccurrenceController {
   clearAll(): void;
   refreshDocuments(): void;
 }
@@ -36,16 +36,16 @@ const EXCLUDED_READING_VIEW_SELECTOR = [
   ".occura-reading-selection-occurrence",
 ].join(",");
 
-export function registerReadingViewDynamicOccurrenceHighlighting(
+export function registerReadingViewOccurrenceHighlighting(
   plugin: OccuraPlugin,
-): ReadingViewDynamicOccurrenceController {
-  const controller = new ReadingViewDynamicOccurrenceControllerImpl(plugin);
+): ReadingViewOccurrenceController {
+  const controller = new ReadingViewOccurrenceControllerImpl(plugin);
   controller.refreshDocuments();
   return controller;
 }
 
-class ReadingViewDynamicOccurrenceControllerImpl
-  implements ReadingViewDynamicOccurrenceController
+class ReadingViewOccurrenceControllerImpl
+  implements ReadingViewOccurrenceController
 {
   private readonly registeredDocuments = new WeakSet<Document>();
   private readonly pointerDownDocuments = new WeakSet<Document>();
@@ -108,7 +108,11 @@ class ReadingViewDynamicOccurrenceControllerImpl
       });
       this.plugin.registerDomEvent(doc, "pointercancel", () => {
         this.pointerDownDocuments.delete(doc);
-        this.scheduleSelectionHandling(doc);
+        if (this.pendingDocument === doc) this.pendingDocument = null;
+        if (this.debounceTimer !== null) {
+          window.clearTimeout(this.debounceTimer);
+          this.debounceTimer = null;
+        }
       });
       this.plugin.registerDomEvent(doc, "selectionchange", () => {
         this.scheduleSelectionHandling(doc);
@@ -169,7 +173,7 @@ class ReadingViewDynamicOccurrenceControllerImpl
     }
 
     const query = selection.toString().trim();
-    if (!isSelectionTextValidForNavigation(query, this.plugin.settings)) {
+    if (validateSelectionQuery(query, this.plugin.settings) !== "valid") {
       this.clearAll();
       return;
     }
@@ -194,14 +198,7 @@ class ReadingViewDynamicOccurrenceControllerImpl
       );
       restoreReadingViewSelection(readingViewRoot, savedSelection);
 
-      if (
-        this.plugin.statusBarOccurrencesNumber &&
-        this.plugin.settings.statusBarOccurrencesNumberEnabled
-      ) {
-        this.plugin.statusBarOccurrencesNumber.setText(
-          `Occura found: ${query} ${count} times`,
-        );
-      }
+      this.plugin.setOccurrenceStatus(query, count, null);
 
       this.lastRoot = readingViewRoot;
       this.lastQuery = query;
@@ -212,9 +209,7 @@ class ReadingViewDynamicOccurrenceControllerImpl
   }
 
   private clearReadingViewStatus(): void {
-    if (this.lastStatusWasReadingView && this.plugin.statusBarOccurrencesNumber) {
-      this.plugin.statusBarOccurrencesNumber.setText("");
-    }
+    if (this.lastStatusWasReadingView) this.plugin.clearOccurrenceStatus();
 
     this.lastStatusWasReadingView = false;
   }
@@ -315,29 +310,9 @@ function restoreReadingViewSelection(
   if (!selection) return;
 
   if (!selection.isCollapsed) {
-    const currentAnchorOffset = getCharacterOffset(
-      root,
-      selection.anchorNode,
-      selection.anchorOffset,
-    );
-    const currentFocusOffset = getCharacterOffset(
-      root,
-      selection.focusNode,
-      selection.focusOffset,
-    );
-
     if (
-      (selection.anchorNode?.isConnected && currentAnchorOffset === null) ||
-      (selection.focusNode?.isConnected && currentFocusOffset === null)
-    ) {
-      return;
-    }
-
-    if (
-      currentAnchorOffset !== null &&
-      currentFocusOffset !== null &&
-      (currentAnchorOffset !== savedSelection.anchorOffset ||
-        currentFocusOffset !== savedSelection.focusOffset)
+      selection.anchorNode?.isConnected &&
+      selection.focusNode?.isConnected
     ) {
       return;
     }
@@ -482,8 +457,9 @@ export function applyReadingViewDynamicHighlights(
   for (const textNode of textNodes) {
     count += wrapMatchesInTextNode(
       textNode,
-      buildRegex(query, plugin.settings.occuraCaseSensitive, false),
       query,
+      plugin.settings.occuraCaseSensitive,
+      plugin.settings.minimumSelectionLength,
     );
   }
 
@@ -566,24 +542,18 @@ function shouldSkipElement(element: Element): boolean {
   return !!element.closest(EXCLUDED_READING_VIEW_SELECTOR);
 }
 
-function wrapMatchesInTextNode(textNode: Text, re: RegExp, query: string): number {
+function wrapMatchesInTextNode(
+  textNode: Text,
+  query: string,
+  caseSensitive: boolean,
+  minimumLength: number,
+): number {
   const text = textNode.nodeValue ?? "";
-  re.lastIndex = 0;
-
-  const matches: Array<{ from: number; to: number }> = [];
-  let match: RegExpExecArray | null;
-
-  while ((match = re.exec(text))) {
-    if (match[0].length === 0) {
-      re.lastIndex++;
-      continue;
-    }
-
-    matches.push({
-      from: match.index,
-      to: match.index + match[0].length,
-    });
-  }
+  const matches = findMatches(text, query, {
+    caseSensitive,
+    wholeWord: true,
+    minimumLength,
+  });
 
   if (matches.length === 0) return 0;
 

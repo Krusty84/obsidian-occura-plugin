@@ -24,9 +24,9 @@ import {
 } from "src/editorOccurrences";
 import { navigateOccurrence } from "src/occurrenceNavigation";
 import {
-  registerReadingViewDynamicOccurrenceHighlighting,
-  type ReadingViewDynamicOccurrenceController,
-} from "src/readingViewDynamicOccurrences";
+  registerReadingViewOccurrenceHighlighting,
+  type ReadingViewOccurrenceController,
+} from "src/readingViewOccurrences";
 import { registerKeywordReadingViewPostProcessor } from "src/readingViewKeywords";
 import { registerWordClassesEditorMenu } from "src/wordClasses";
 import { migrateSettings } from "src/settingsMigration";
@@ -34,7 +34,7 @@ import { migrateSettings } from "src/settingsMigration";
 export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost {
   settings: OccuraPluginSettings;
   highlightCompartment: Compartment;
-  readingViewDynamicOccurrences: ReadingViewDynamicOccurrenceController | null =
+  readingViewOccurrences: ReadingViewOccurrenceController | null =
     null;
   statusBarOccurrencesNumber: HTMLElement | null = null;
 
@@ -43,8 +43,8 @@ export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost
     this.statusBarOccurrencesNumber = this.addStatusBarItem();
     // Initialize the compartment for the highlighting extension
     this.highlightCompartment = new Compartment();
-    this.readingViewDynamicOccurrences =
-      registerReadingViewDynamicOccurrenceHighlighting(this);
+    this.readingViewOccurrences =
+      registerReadingViewOccurrenceHighlighting(this);
 
     // Add the settings tab
     this.addSettingTab(new OccuraPluginSettingTab(this.app, this));
@@ -150,7 +150,7 @@ export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost
       this.app.workspace.on("layout-change", () => {
         this.addIconsToAllLeaves();
         this.updateHighlightStyle();
-        this.readingViewDynamicOccurrences?.refreshDocuments();
+        this.readingViewOccurrences?.refreshDocuments();
       }),
     );
     this.registerEvent(
@@ -211,7 +211,7 @@ export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost
     // Force the editor to re-render
     this.updateEditors();
     if (!this.settings.occuraPluginEnabled) {
-      this.readingViewDynamicOccurrences?.clearAll();
+      this.readingViewOccurrences?.clearAll();
       this.clearOccurrenceStatus();
     }
     // Update the icon in the title bar
@@ -356,7 +356,7 @@ export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost
   }
 
   onunload() {
-    this.readingViewDynamicOccurrences?.clearAll();
+    this.readingViewOccurrences?.clearAll();
     this.clearOccurrenceStatus();
     for (const doc of this.getWorkspaceDocuments()) {
       doc.documentElement.style.removeProperty(

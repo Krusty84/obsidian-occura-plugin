@@ -12,7 +12,7 @@ import {
   getReadingViewDynamicOccurrenceQuery,
   getReadingViewRootFromSelection,
   selectReadingViewOccurrence,
-} from "src/readingViewDynamicOccurrences";
+} from "src/readingViewOccurrences";
 
 export type OccuraNavigationDirection = "next" | "previous";
 
