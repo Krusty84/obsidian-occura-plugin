@@ -233,6 +233,8 @@ export function highlightOccurrenceExtension(host: EditorOccurrenceHost) {
           return;
         }
 
+        if (host.isEditorViewActive(this.view)) host.clearOccurrenceStatus();
+
         this.debounceTimer = window.setTimeout(() => {
           this.debounceTimer = null;
           const latestQuery = getSelectionQuery(this.view, host.settings);

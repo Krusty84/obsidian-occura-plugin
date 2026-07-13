@@ -87,6 +87,7 @@ describe("editor occurrences", () => {
     const view = createView("alpha beta alpha beta", { anchor: 0, head: 5 }, host);
 
     view.dispatch({ selection: { anchor: 6, head: 10 } });
+    expect(host.clearOccurrenceStatus).toHaveBeenCalled();
     vi.advanceTimersByTime(119);
     expect(host.setOccurrenceStatus).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);

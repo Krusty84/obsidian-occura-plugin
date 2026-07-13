@@ -232,7 +232,11 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
         .setButtonText("Reset")
         .setWarning()
         .onClick(async () => {
-          Object.assign(this.plugin.settings, DEFAULT_SETTINGS);
+          Object.assign(this.plugin.settings, {
+            ...DEFAULT_SETTINGS,
+            keywords: [...DEFAULT_SETTINGS.keywords],
+            keywordGroups: [...DEFAULT_SETTINGS.keywordGroups],
+          });
           await this.plugin.saveSettings();
           this.plugin.updateEditors();
           this.display();
