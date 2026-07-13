@@ -13,13 +13,16 @@ import {
   OccuraPluginSettings,
 } from "src/settings";
 import {
-  highlightOccurrenceExtension,
   setPermanentHighlightOccurrences,
   removePermanentHighlightOccurrences,
   removeTagFromOccurrences,
   createTagForOccurrences,
 } from "src/highlighter";
-import { navigateOccurrence } from "src/occurenceNavigation";
+import {
+  highlightOccurrenceExtension,
+  type EditorOccurrenceHost,
+} from "src/editorOccurrences";
+import { navigateOccurrence } from "src/occurrenceNavigation";
 import {
   registerReadingViewDynamicOccurrenceHighlighting,
   type ReadingViewDynamicOccurrenceController,
@@ -28,7 +31,7 @@ import { registerKeywordReadingViewPostProcessor } from "src/readingViewKeywords
 import { registerWordClassesEditorMenu } from "src/wordClasses";
 import { migrateSettings } from "src/settingsMigration";
 
-export default class OccuraPlugin extends Plugin {
+export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost {
   settings: OccuraPluginSettings;
   highlightCompartment: Compartment;
   readingViewDynamicOccurrences: ReadingViewDynamicOccurrenceController | null =
@@ -37,6 +40,7 @@ export default class OccuraPlugin extends Plugin {
 
   async onload() {
     await this.loadSettings();
+    this.statusBarOccurrencesNumber = this.addStatusBarItem();
     // Initialize the compartment for the highlighting extension
     this.highlightCompartment = new Compartment();
     this.readingViewDynamicOccurrences =
@@ -149,6 +153,11 @@ export default class OccuraPlugin extends Plugin {
         this.readingViewDynamicOccurrences?.refreshDocuments();
       }),
     );
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", () => {
+        this.clearOccurrenceStatus();
+      }),
+    );
 
     // Initial addition of the icon to all leaves
     this.addIconsToAllLeaves();
@@ -164,6 +173,37 @@ export default class OccuraPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
+  clearOccurrenceStatus(): void {
+    this.statusBarOccurrencesNumber?.setText("");
+  }
+
+  isEditorViewActive(editorView: EditorView): boolean {
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    return (
+      !!activeView?.editor &&
+      (activeView.editor as { cm?: EditorView }).cm === editorView
+    );
+  }
+
+  setOccurrenceStatus(
+    query: string,
+    count: number,
+    currentIndex: number | null,
+  ): void {
+    if (
+      !this.settings.occuraPluginEnabled ||
+      !this.settings.statusBarOccurrencesNumberEnabled
+    ) {
+      this.clearOccurrenceStatus();
+      return;
+    }
+
+    const position = currentIndex === null ? "" : ` (${currentIndex + 1}/${count})`;
+    this.statusBarOccurrencesNumber?.setText(
+      `Occura found: ${query} ${count} times${position}`,
+    );
+  }
+
   // Toggle highlighting functionality
   toggleHighlighting() {
     this.settings.occuraPluginEnabled = !this.settings.occuraPluginEnabled;
@@ -172,6 +212,7 @@ export default class OccuraPlugin extends Plugin {
     this.updateEditors();
     if (!this.settings.occuraPluginEnabled) {
       this.readingViewDynamicOccurrences?.clearAll();
+      this.clearOccurrenceStatus();
     }
     // Update the icon in the title bar
     this.updateAllTitleBarIcons();
@@ -306,10 +347,6 @@ export default class OccuraPlugin extends Plugin {
     setIcon(iconEl, "highlighter");
 
     if (this.settings.occuraPluginEnabled) {
-      // If we've never added the status bar item, do it now
-      if (!this.statusBarOccurrencesNumber) {
-        this.statusBarOccurrencesNumber = this.addStatusBarItem();
-      }
       setTooltip(iconEl, "Disable highlighting");
       iconEl.removeClass("is-disabled");
     } else {
@@ -320,6 +357,7 @@ export default class OccuraPlugin extends Plugin {
 
   onunload() {
     this.readingViewDynamicOccurrences?.clearAll();
+    this.clearOccurrenceStatus();
     for (const doc of this.getWorkspaceDocuments()) {
       doc.documentElement.style.removeProperty(
         "--occura-highlight-color-occurrences",
