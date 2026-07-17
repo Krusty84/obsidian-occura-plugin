@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import type OccuraPlugin from "main";
 import { findMatches } from "src/matching";
 
@@ -44,12 +49,9 @@ const EXCLUDED_READING_VIEW_SELECTOR = [
 export function registerKeywordReadingViewPostProcessor(
   plugin: OccuraPlugin,
 ): void {
-  plugin.registerMarkdownPostProcessor(
-    (el) => {
-      highlightReadingViewKeywordClasses(el, plugin);
-    },
-    1000,
-  );
+  plugin.registerMarkdownPostProcessor((el) => {
+    highlightReadingViewKeywordClasses(el, plugin);
+  }, 1000);
 }
 
 function getPreparedKeywords(plugin: OccuraPlugin): PreparedKeyword[] {
@@ -165,7 +167,7 @@ function collectMatchesForText(
   candidates.sort(
     (a, b) =>
       a.from - b.from ||
-      (b.to - b.from) - (a.to - a.from) ||
+      b.to - b.from - (a.to - a.from) ||
       a.groupIndex - b.groupIndex ||
       a.keywordIndex - b.keywordIndex,
   );

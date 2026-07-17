@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import { RangeSetBuilder, type Text } from "@codemirror/state";
 import {
   Decoration,
@@ -7,11 +12,7 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import type { OccuraPluginSettings } from "src/settings";
-import {
-  findMatches,
-  type MatchOptions,
-  type TextMatch,
-} from "src/matching";
+import { findMatches, type MatchOptions, type TextMatch } from "src/matching";
 
 export interface EditorOccurrenceHost {
   settings: OccuraPluginSettings;
@@ -79,10 +80,7 @@ export function validateSelectionQuery(
 ): SelectionValidationReason {
   if (!query) return "empty";
   if (/\r|\n/.test(query)) return "multiline";
-  if (
-    /\s/.test(query) &&
-    settings.allowPhraseSelectionHighlighting !== true
-  ) {
+  if (/\s/.test(query) && settings.allowPhraseSelectionHighlighting !== true) {
     return "phrase-disabled";
   }
   if (Array.from(query).length < settings.minimumSelectionLength) {
@@ -102,7 +100,8 @@ export function getSelectionQuery(
   const query = selectedText.trim();
   if (validateSelectionQuery(query, settings) !== "valid") return null;
 
-  const leadingWhitespace = selectedText.length - selectedText.trimStart().length;
+  const leadingWhitespace =
+    selectedText.length - selectedText.trimStart().length;
   return {
     query,
     from: selection.from + leadingWhitespace,
@@ -210,7 +209,11 @@ export function highlightOccurrenceExtension(host: EditorOccurrenceHost) {
           this.scheduleSelectedOccurrences();
         }
 
-        if (update.selectionSet || update.docChanged || update.viewportChanged) {
+        if (
+          update.selectionSet ||
+          update.docChanged ||
+          update.viewportChanged
+        ) {
           this.rebuildDecorations();
         }
       }
@@ -240,7 +243,8 @@ export function highlightOccurrenceExtension(host: EditorOccurrenceHost) {
           const latestQuery = getSelectionQuery(this.view, host.settings);
           if (!latestQuery) {
             this.snapshot = null;
-            if (host.isEditorViewActive(this.view)) host.clearOccurrenceStatus();
+            if (host.isEditorViewActive(this.view))
+              host.clearOccurrenceStatus();
             this.view.dispatch({});
             return;
           }

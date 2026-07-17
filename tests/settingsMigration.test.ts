@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import { describe, expect, it } from "vitest";
 import { migrateSettings } from "src/settingsMigration";
 
@@ -29,8 +34,17 @@ describe("migrateSettings", () => {
   });
 
   it("normalizes invalid minimum lengths and keeps valid integers", () => {
-    expect(migrateSettings({ minimumSelectionLength: 0 }).settings.minimumSelectionLength).toBe(2);
-    expect(migrateSettings({ minimumSelectionLength: Number.NaN }).settings.minimumSelectionLength).toBe(2);
-    expect(migrateSettings({ minimumSelectionLength: 4.8 }).settings.minimumSelectionLength).toBe(4);
+    expect(
+      migrateSettings({ minimumSelectionLength: 0 }).settings
+        .minimumSelectionLength,
+    ).toBe(2);
+    expect(
+      migrateSettings({ minimumSelectionLength: Number.NaN }).settings
+        .minimumSelectionLength,
+    ).toBe(2);
+    expect(
+      migrateSettings({ minimumSelectionLength: 4.8 }).settings
+        .minimumSelectionLength,
+    ).toBe(4);
   });
 });

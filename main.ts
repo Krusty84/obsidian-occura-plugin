@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import {
   Plugin,
   MarkdownView,
@@ -8,10 +13,7 @@ import {
 } from "obsidian";
 import { Compartment } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import {
-  OccuraPluginSettingTab,
-  OccuraPluginSettings,
-} from "src/settings";
+import { OccuraPluginSettingTab, OccuraPluginSettings } from "src/settings";
 import {
   runMarkdownMutationCommand,
   type MarkdownMutationKind,
@@ -29,11 +31,13 @@ import { registerKeywordReadingViewPostProcessor } from "src/readingViewKeywords
 import { registerWordClassesEditorMenu } from "src/wordClasses";
 import { migrateSettings } from "src/settingsMigration";
 
-export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost {
+export default class OccuraPlugin
+  extends Plugin
+  implements EditorOccurrenceHost
+{
   settings: OccuraPluginSettings;
   highlightCompartment: Compartment;
-  readingViewOccurrences: ReadingViewOccurrenceController | null =
-    null;
+  readingViewOccurrences: ReadingViewOccurrenceController | null = null;
   statusBarOccurrencesNumber: HTMLElement | null = null;
 
   async onload() {
@@ -189,7 +193,8 @@ export default class OccuraPlugin extends Plugin implements EditorOccurrenceHost
       return;
     }
 
-    const position = currentIndex === null ? "" : ` (${currentIndex + 1}/${count})`;
+    const position =
+      currentIndex === null ? "" : ` (${currentIndex + 1}/${count})`;
     this.statusBarOccurrencesNumber?.setText(
       `Occura found: ${query} ${count} times${position}`,
     );

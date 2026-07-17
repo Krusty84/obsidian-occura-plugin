@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -25,7 +30,11 @@ function createHost(overrides = {}) {
   };
 }
 
-function createView(doc: string, selection: { anchor: number; head: number }, host: ReturnType<typeof createHost>) {
+function createView(
+  doc: string,
+  selection: { anchor: number; head: number },
+  host: ReturnType<typeof createHost>,
+) {
   const parent = document.createElement("div");
   document.body.appendChild(parent);
   return new EditorView({
@@ -53,7 +62,9 @@ describe("editor occurrences", () => {
     const snapshot = getEditorOccurrenceSnapshot(view, settings());
 
     expect(snapshot?.matches).toHaveLength(3);
-    expect(getVisibleMatches(snapshot?.matches ?? [], [{ from: 10, to: 27 }])).toEqual([
+    expect(
+      getVisibleMatches(snapshot?.matches ?? [], [{ from: 10, to: 27 }]),
+    ).toEqual([
       { from: 12, to: 16 },
       { from: 25, to: 29 },
     ]);
@@ -84,7 +95,11 @@ describe("editor occurrences", () => {
   it("replaces rapid pending selection work and keeps the final query", () => {
     vi.useFakeTimers();
     const host = createHost();
-    const view = createView("alpha beta alpha beta", { anchor: 0, head: 5 }, host);
+    const view = createView(
+      "alpha beta alpha beta",
+      { anchor: 0, head: 5 },
+      host,
+    );
 
     view.dispatch({ selection: { anchor: 6, head: 10 } });
     expect(host.clearOccurrenceStatus).toHaveBeenCalled();

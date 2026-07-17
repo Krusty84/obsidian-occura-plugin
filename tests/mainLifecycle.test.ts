@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import OccuraPlugin from "main";
 
@@ -42,7 +47,10 @@ describe("Occura lifecycle and input compatibility", () => {
   it("creates one status item and does not register a global keydown handler", async () => {
     const { app, emit } = createApp();
     const addWindowListener = vi.spyOn(window, "addEventListener");
-    const plugin = new OccuraPlugin(app as never, {} as never) as OccuraPlugin & {
+    const plugin = new OccuraPlugin(
+      app as never,
+      {} as never,
+    ) as OccuraPlugin & {
       _statusItems: HTMLElement[];
       _runCleanups(): void;
     };
@@ -52,7 +60,9 @@ describe("Occura lifecycle and input compatibility", () => {
     emit("layout-change");
 
     expect(plugin._statusItems).toHaveLength(1);
-    expect(addWindowListener.mock.calls.some(([event]) => event === "keydown")).toBe(false);
+    expect(
+      addWindowListener.mock.calls.some(([event]) => event === "keydown"),
+    ).toBe(false);
 
     const event = new KeyboardEvent("keydown", { key: "F3", cancelable: true });
     window.dispatchEvent(event);
@@ -62,7 +72,10 @@ describe("Occura lifecycle and input compatibility", () => {
 
   it("keeps all commands and clears stale status on view changes and disable", async () => {
     const { app, emit } = createApp();
-    const plugin = new OccuraPlugin(app as never, {} as never) as OccuraPlugin & {
+    const plugin = new OccuraPlugin(
+      app as never,
+      {} as never,
+    ) as OccuraPlugin & {
       _commands: Array<{ id: string }>;
       _runCleanups(): void;
     };
@@ -92,7 +105,10 @@ describe("Occura lifecycle and input compatibility", () => {
 
   it("uses editor callbacks without clearing the selection after toolbar interaction", async () => {
     const { app } = createApp();
-    const plugin = new OccuraPlugin(app as never, {} as never) as OccuraPlugin & {
+    const plugin = new OccuraPlugin(
+      app as never,
+      {} as never,
+    ) as OccuraPlugin & {
       _commands: Array<{
         id: string;
         editorCallback?: (editor: unknown) => void;

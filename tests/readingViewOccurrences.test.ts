@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MarkdownView } from "obsidian";
 import {
@@ -100,16 +105,30 @@ describe("Reading View occurrences", () => {
     expect(applyReadingViewDynamicHighlights(root, "word", plugin)).toBe(3);
 
     const marks = getReadingViewDynamicOccurrenceMarks(root, "word");
-    expect(marks.map((mark) => mark.textContent)).toEqual(["Word", "word", "WORD"]);
-    expect(marks.every((mark) => mark.classList.contains("found-occurrence"))).toBe(true);
+    expect(marks.map((mark) => mark.textContent)).toEqual([
+      "Word",
+      "word",
+      "WORD",
+    ]);
+    expect(
+      marks.every((mark) => mark.classList.contains("found-occurrence")),
+    ).toBe(true);
     expect(getReadingViewDynamicOccurrenceQuery(root)).toBe("word");
   });
 
   it("honors case-sensitive matching", () => {
     const root = createRoot("<p>Word word WORD</p>");
 
-    expect(applyReadingViewDynamicHighlights(root, "word", createPlugin([root], true))).toBe(1);
-    expect(getReadingViewDynamicOccurrenceMarks(root, "word")[0].textContent).toBe("word");
+    expect(
+      applyReadingViewDynamicHighlights(
+        root,
+        "word",
+        createPlugin([root], true),
+      ),
+    ).toBe(1);
+    expect(
+      getReadingViewDynamicOccurrenceMarks(root, "word")[0].textContent,
+    ).toBe("word");
   });
 
   it("clears previous highlights before applying a new query", () => {
@@ -133,7 +152,9 @@ describe("Reading View occurrences", () => {
     applyReadingViewDynamicHighlights(second, "beta", plugin);
 
     expect(getReadingViewDynamicOccurrenceMarks(first, "alpha")).toEqual([]);
-    expect(getReadingViewDynamicOccurrenceMarks(second, "beta")).toHaveLength(1);
+    expect(getReadingViewDynamicOccurrenceMarks(second, "beta")).toHaveLength(
+      1,
+    );
   });
 
   it("skips excluded Reading View elements", () => {
@@ -143,7 +164,9 @@ describe("Reading View occurrences", () => {
       <div class="math">word</div><div class="cm-editor">word</div>
     `);
 
-    expect(applyReadingViewDynamicHighlights(root, "word", createPlugin([root]))).toBe(1);
+    expect(
+      applyReadingViewDynamicHighlights(root, "word", createPlugin([root])),
+    ).toBe(1);
     expect(getReadingViewDynamicOccurrenceMarks(root, "word")).toHaveLength(1);
   });
 
@@ -203,6 +226,8 @@ describe("Reading View occurrences", () => {
 
   it("does not match a selected Unicode word inside a longer word", () => {
     const root = createRoot("<p>мир мирный МИР</p>");
-    expect(applyReadingViewDynamicHighlights(root, "мир", createPlugin([root]))).toBe(2);
+    expect(
+      applyReadingViewDynamicHighlights(root, "мир", createPlugin([root])),
+    ).toBe(2);
   });
 });

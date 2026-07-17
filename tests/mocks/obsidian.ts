@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 export const Platform = {
   isMacOS: false,
 };
@@ -113,7 +118,9 @@ export class Plugin {
     options?: AddEventListenerOptions | boolean,
   ): void {
     target.addEventListener(event, callback, options);
-    this._cleanups.push(() => target.removeEventListener(event, callback, options));
+    this._cleanups.push(() =>
+      target.removeEventListener(event, callback, options),
+    );
   }
 
   _runCleanups(): void {

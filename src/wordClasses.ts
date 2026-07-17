@@ -1,16 +1,23 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import { App, Editor, Notice, SuggestModal } from "obsidian";
 import type OccuraPlugin from "main";
 import type { KeywordGroup } from "src/settings";
 
 type SubmenuCapableMenuItem = {
   setSubmenu(): {
-    addItem(callback: (item: {
-      setTitle(title: string): {
-        setIcon(icon: string | null): {
-          onClick(callback: () => void): unknown;
+    addItem(
+      callback: (item: {
+        setTitle(title: string): {
+          setIcon(icon: string | null): {
+            onClick(callback: () => void): unknown;
+          };
         };
-      };
-    }) => void): unknown;
+      }) => void,
+    ): unknown;
   };
 };
 
@@ -18,7 +25,11 @@ class KeywordGroupSuggestModal extends SuggestModal<KeywordGroup> {
   private readonly groups: KeywordGroup[];
   private readonly onChoose: (group: KeywordGroup) => void;
 
-  constructor(app: App, groups: KeywordGroup[], onChoose: (group: KeywordGroup) => void) {
+  constructor(
+    app: App,
+    groups: KeywordGroup[],
+    onChoose: (group: KeywordGroup) => void,
+  ) {
     super(app);
     this.groups = groups;
     this.onChoose = onChoose;
@@ -30,7 +41,9 @@ class KeywordGroupSuggestModal extends SuggestModal<KeywordGroup> {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return this.groups;
 
-    return this.groups.filter((group) => group.name.toLowerCase().includes(normalizedQuery));
+    return this.groups.filter((group) =>
+      group.name.toLowerCase().includes(normalizedQuery),
+    );
   }
 
   renderSuggestion(group: KeywordGroup, el: HTMLElement): void {
@@ -65,7 +78,9 @@ export function registerWordClassesEditorMenu(plugin: OccuraPlugin): void {
       menu.addItem((item) => {
         item.setTitle("Obsidian").setIcon("highlighter");
 
-        const submenu = (item as unknown as SubmenuCapableMenuItem).setSubmenu();
+        const submenu = (
+          item as unknown as SubmenuCapableMenuItem
+        ).setSubmenu();
         submenu.addItem((submenuItem) => {
           submenuItem
             .setTitle("Add selected word to class")
@@ -90,13 +105,17 @@ async function addWordToKeywordGroup(
     return;
   }
 
-  const group = plugin.settings.keywordGroups.find((candidate) => candidate.id === groupId);
+  const group = plugin.settings.keywordGroups.find(
+    (candidate) => candidate.id === groupId,
+  );
   if (!group) {
     new Notice("Word class not found.");
     return;
   }
 
-  const normalizedWord = group.caseSensitive ? selectedWord : selectedWord.toLowerCase();
+  const normalizedWord = group.caseSensitive
+    ? selectedWord
+    : selectedWord.toLowerCase();
   const exists = group.keywords.some((keyword) => {
     const normalizedKeyword = group.caseSensitive
       ? keyword.trim()

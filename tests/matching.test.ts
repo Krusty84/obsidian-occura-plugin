@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import { describe, expect, it } from "vitest";
 import { findMatches, type MatchOptions } from "src/matching";
 
@@ -7,7 +12,11 @@ const WHOLE_WORD: MatchOptions = {
   minimumLength: 1,
 };
 
-function matchedText(text: string, query: string, options = WHOLE_WORD): string[] {
+function matchedText(
+  text: string,
+  query: string,
+  options = WHOLE_WORD,
+): string[] {
   return findMatches(text, query, options).map((match) =>
     text.slice(match.from, match.to),
   );
@@ -35,33 +44,40 @@ describe("findMatches", () => {
     expect(matchedText("ice cream ice creams", "ice cream")).toEqual([
       "ice cream",
     ]);
-    expect(matchedText("$ $$ $", "$", { ...WHOLE_WORD, wholeWord: true })).toEqual([
-      "$",
-      "$",
-      "$",
-      "$",
-    ]);
-    expect(matchedText("a+b aab a+b", "a+b", {
-      ...WHOLE_WORD,
-      wholeWord: false,
-      caseSensitive: true,
-    })).toEqual(["a+b", "a+b"]);
+    expect(
+      matchedText("$ $$ $", "$", { ...WHOLE_WORD, wholeWord: true }),
+    ).toEqual(["$", "$", "$", "$"]);
+    expect(
+      matchedText("a+b aab a+b", "a+b", {
+        ...WHOLE_WORD,
+        wholeWord: false,
+        caseSensitive: true,
+      }),
+    ).toEqual(["a+b", "a+b"]);
   });
 
   it("supports explicit substring and case-sensitive matching", () => {
-    expect(matchedText("scatter cat", "cat", {
-      ...WHOLE_WORD,
-      wholeWord: false,
-    })).toEqual(["cat", "cat"]);
-    expect(matchedText("Word word WORD", "word", {
-      ...WHOLE_WORD,
-      caseSensitive: true,
-    })).toEqual(["word"]);
+    expect(
+      matchedText("scatter cat", "cat", {
+        ...WHOLE_WORD,
+        wholeWord: false,
+      }),
+    ).toEqual(["cat", "cat"]);
+    expect(
+      matchedText("Word word WORD", "word", {
+        ...WHOLE_WORD,
+        caseSensitive: true,
+      }),
+    ).toEqual(["word"]);
   });
 
   it("enforces minimum length by Unicode code point", () => {
-    expect(findMatches("$ $", "$", { ...WHOLE_WORD, minimumLength: 2 })).toEqual([]);
-    expect(findMatches("😀 😀", "😀", { ...WHOLE_WORD, minimumLength: 1 })).toHaveLength(2);
+    expect(
+      findMatches("$ $", "$", { ...WHOLE_WORD, minimumLength: 2 }),
+    ).toEqual([]);
+    expect(
+      findMatches("😀 😀", "😀", { ...WHOLE_WORD, minimumLength: 1 }),
+    ).toHaveLength(2);
     expect(findMatches("anything", "", WHOLE_WORD)).toEqual([]);
   });
 

@@ -1,7 +1,10 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import { describe, expect, it } from "vitest";
-import {
-  getTargetOccurrenceIndex,
-} from "src/occurrenceNavigation";
+import { getTargetOccurrenceIndex } from "src/occurrenceNavigation";
 
 describe("getTargetOccurrenceIndex", () => {
   const matches = [

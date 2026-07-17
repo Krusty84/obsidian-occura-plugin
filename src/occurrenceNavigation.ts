@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import type OccuraPlugin from "main";
 import { MarkdownView, Notice } from "obsidian";
 import {
@@ -118,7 +123,11 @@ export function navigateOccurrence(
     userEvent: "select.search",
   });
   codeMirror.focus();
-  context.setOccurrenceStatus(snapshot.query, snapshot.matches.length, targetIndex);
+  context.setOccurrenceStatus(
+    snapshot.query,
+    snapshot.matches.length,
+    targetIndex,
+  );
 
   if (snapshot.matches.length === 1) {
     new Notice("Only one occurrence found.");
@@ -140,7 +149,9 @@ function navigateReadingViewOccurrence(
   const hasSelection =
     !!selection && selection.rangeCount > 0 && !selection.isCollapsed;
   const selectionRoot =
-    hasSelection && selection ? getReadingViewRootFromSelection(selection) : null;
+    hasSelection && selection
+      ? getReadingViewRootFromSelection(selection)
+      : null;
 
   let query: string | null = null;
   if (hasSelection && selection && selectionRoot === root) {
@@ -209,7 +220,8 @@ function getTargetPreviewOccurrenceIndex(
     if (currentIndex >= 0) return (currentIndex + 1) % matches.length;
     const nextIndex = matches.findIndex(
       (match) =>
-        selectionRange.compareBoundaryPoints(Range.END_TO_START, match.range) <= 0,
+        selectionRange.compareBoundaryPoints(Range.END_TO_START, match.range) <=
+        0,
     );
     return nextIndex >= 0 ? nextIndex : 0;
   }

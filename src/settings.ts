@@ -1,10 +1,9 @@
-import {
-  App,
-  Modal,
-  PluginSettingTab,
-  Setting,
-  TextComponent,
-} from "obsidian";
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
+import { App, Modal, PluginSettingTab, Setting, TextComponent } from "obsidian";
 import type OccuraPlugin from "main";
 
 export interface KeywordGroup {

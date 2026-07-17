@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import { Notice, type Editor } from "obsidian";
 import { findMatches, type TextMatch } from "src/matching";
 
@@ -119,20 +124,26 @@ function getLines(text: string): SourceLine[] {
 
 function mergeRanges(ranges: SourceRange[]): SourceRange[] {
   if (ranges.length === 0) return [];
-  const sorted = [...ranges].sort((left, right) => left.from - right.from || left.to - right.to);
+  const sorted = [...ranges].sort(
+    (left, right) => left.from - right.from || left.to - right.to,
+  );
   const merged: SourceRange[] = [{ ...sorted[0] }];
 
   for (let index = 1; index < sorted.length; index++) {
     const current = sorted[index];
     const previous = merged[merged.length - 1];
-    if (current.from <= previous.to) previous.to = Math.max(previous.to, current.to);
+    if (current.from <= previous.to)
+      previous.to = Math.max(previous.to, current.to);
     else merged.push({ ...current });
   }
 
   return merged;
 }
 
-function overlapsProtected(range: SourceRange, protectedRanges: SourceRange[]): boolean {
+function overlapsProtected(
+  range: SourceRange,
+  protectedRanges: SourceRange[],
+): boolean {
   return protectedRanges.some(
     (protectedRange) =>
       range.from < protectedRange.to && range.to > protectedRange.from,
@@ -141,7 +152,11 @@ function overlapsProtected(range: SourceRange, protectedRanges: SourceRange[]): 
 
 function isEscaped(text: string, index: number): boolean {
   let slashCount = 0;
-  for (let cursor = index - 1; cursor >= 0 && text.charAt(cursor) === "\\"; cursor--) {
+  for (
+    let cursor = index - 1;
+    cursor >= 0 && text.charAt(cursor) === "\\";
+    cursor--
+  ) {
     slashCount++;
   }
   return slashCount % 2 === 1;
@@ -158,7 +173,10 @@ function addFrontmatterAndFences(text: string, ranges: SourceRange[]): void {
 
   if (lines[0]?.text === "---") {
     let closing = 1;
-    while (closing < lines.length && !/^(---|\.\.\.)\s*$/.test(lines[closing].text)) {
+    while (
+      closing < lines.length &&
+      !/^(---|\.\.\.)\s*$/.test(lines[closing].text)
+    ) {
       closing++;
     }
     ranges.push({
@@ -181,7 +199,10 @@ function addFrontmatterAndFences(text: string, ranges: SourceRange[]): void {
       `^ {0,3}${marker === "`" ? "`" : "~"}{${minimumLength},}\\s*$`,
     );
     let closing = index + 1;
-    while (closing < lines.length && !closingPattern.test(lines[closing].text)) {
+    while (
+      closing < lines.length &&
+      !closingPattern.test(lines[closing].text)
+    ) {
       closing++;
     }
 
@@ -202,14 +223,19 @@ function addHtmlBlocks(text: string, ranges: SourceRange[]): void {
 
   const lines = getLines(text);
   for (let index = 0; index < lines.length; index++) {
-    const opener = /^ {0,3}<([A-Za-z][\w-]*)(?:\s|>|\/)/.exec(lines[index].text);
+    const opener = /^ {0,3}<([A-Za-z][\w-]*)(?:\s|>|\/)/.exec(
+      lines[index].text,
+    );
     if (!opener) continue;
     const tag = opener[1].toLowerCase();
     if (!HTML_BLOCK_TAGS.has(tag) && !RAW_HTML_TAGS.has(tag)) continue;
 
     const closingPattern = new RegExp(`</${tag}\\s*>`, "i");
     let closing = index;
-    while (closing < lines.length && !closingPattern.test(lines[closing].text)) {
+    while (
+      closing < lines.length &&
+      !closingPattern.test(lines[closing].text)
+    ) {
       if (
         closing > index &&
         !RAW_HTML_TAGS.has(tag) &&
@@ -251,7 +277,10 @@ function addWikiLinks(text: string, ranges: SourceRange[]): void {
     const isLink = text.startsWith("[[", index);
     if ((!isEmbed && !isLink) || isEscaped(text, index)) continue;
     const from = isEmbed ? index : index;
-    if (overlapsProtected({ from, to: from + (isEmbed ? 3 : 2) }, protectedRanges)) continue;
+    if (
+      overlapsProtected({ from, to: from + (isEmbed ? 3 : 2) }, protectedRanges)
+    )
+      continue;
 
     const closing = text.indexOf("]]", index + (isEmbed ? 3 : 2));
     const to = closing < 0 ? findLineEnd(text, index) : closing + 2;
@@ -295,13 +324,17 @@ function addMarkdownLinks(text: string, ranges: SourceRange[]): void {
   let definition: RegExpExecArray | null;
   while ((definition = definitionPattern.exec(text))) {
     referenceIds.add(normalizeReference(definition[1]));
-    ranges.push({ from: definition.index, to: definition.index + definition[0].length });
+    ranges.push({
+      from: definition.index,
+      to: definition.index + definition[0].length,
+    });
   }
 
   let protectedRanges = mergeRanges(ranges);
   for (let index = 0; index < text.length; index++) {
     if (text.charAt(index) !== "[" || isEscaped(text, index)) continue;
-    const from = index > 0 && text.charAt(index - 1) === "!" ? index - 1 : index;
+    const from =
+      index > 0 && text.charAt(index - 1) === "!" ? index - 1 : index;
     if (overlapsProtected({ from, to: index + 1 }, protectedRanges)) continue;
 
     const labelEnd = findClosingBracket(text, index);
@@ -341,7 +374,8 @@ function addExistingHighlights(text: string, ranges: SourceRange[]): void {
   let protectedRanges = mergeRanges(ranges);
   for (let index = 0; index < text.length - 1; index++) {
     if (!text.startsWith("==", index) || isEscaped(text, index)) continue;
-    if (overlapsProtected({ from: index, to: index + 2 }, protectedRanges)) continue;
+    if (overlapsProtected({ from: index, to: index + 2 }, protectedRanges))
+      continue;
     const closing = text.indexOf("==", index + 2);
     const to = closing < 0 ? findLineEnd(text, index) : closing + 2;
     ranges.push({ from: index, to });
@@ -356,7 +390,10 @@ function addExistingTags(text: string, ranges: SourceRange[]): void {
   let token: RegExpExecArray | null;
   while ((token = TAG_TOKEN.exec(text))) {
     const range = { from: token.index, to: token.index + token[0].length };
-    if (!isEscaped(text, token.index) && !overlapsProtected(range, protectedRanges)) {
+    if (
+      !isEscaped(text, token.index) &&
+      !overlapsProtected(range, protectedRanges)
+    ) {
       ranges.push(range);
     }
   }
@@ -384,7 +421,11 @@ function exactLiteralMatch(
     wholeWord,
     minimumLength: 1,
   });
-  return matches.length === 1 && matches[0].from === 0 && matches[0].to === text.length;
+  return (
+    matches.length === 1 &&
+    matches[0].from === 0 &&
+    matches[0].to === text.length
+  );
 }
 
 function planAdditions(
@@ -425,7 +466,8 @@ function planHighlightRemoval(
 
   for (let index = 0; index < text.length - 1; index++) {
     if (!text.startsWith("==", index) || isEscaped(text, index)) continue;
-    if (overlapsProtected({ from: index, to: index + 2 }, protectedRanges)) continue;
+    if (overlapsProtected({ from: index, to: index + 2 }, protectedRanges))
+      continue;
     const closing = text.indexOf("==", index + 2);
     if (closing < 0) break;
     const content = text.slice(index + 2, closing);
@@ -451,7 +493,11 @@ function planTagRemoval(
   while ((token = TAG_TOKEN.exec(text))) {
     if (token[0].startsWith("##")) continue;
     const range = { from: token.index, to: token.index + token[0].length };
-    if (isEscaped(text, token.index) || overlapsProtected(range, protectedRanges)) continue;
+    if (
+      isEscaped(text, token.index) ||
+      overlapsProtected(range, protectedRanges)
+    )
+      continue;
     const content = token[0].slice(1);
     if (exactLiteralMatch(content, query, caseSensitive, true)) {
       changes.push({ from: token.index, to: token.index + 1, insert: "" });
@@ -495,7 +541,12 @@ export function runMarkdownMutationCommand(
     return;
   }
 
-  const plan = planMarkdownMutation(editor.getValue(), query, kind, caseSensitive);
+  const plan = planMarkdownMutation(
+    editor.getValue(),
+    query,
+    kind,
+    caseSensitive,
+  );
   if (plan.count === 0) {
     new Notice("No occurrences can be safely changed.");
     return;

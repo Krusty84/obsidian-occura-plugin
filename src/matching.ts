@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 export interface MatchOptions {
   caseSensitive: boolean;
   wholeWord: boolean;
@@ -93,10 +98,7 @@ export function findMatches(
 
     const from = match.index;
     const to = from + matchedText.length;
-    if (
-      options.wholeWord &&
-      !hasWholeWordBoundaries(text, query, from, to)
-    ) {
+    if (options.wholeWord && !hasWholeWordBoundaries(text, query, from, to)) {
       continue;
     }
 

@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import { describe, expect, it, vi } from "vitest";
 import {
   planMarkdownMutation,
@@ -11,7 +16,9 @@ function applyChanges(text: string, changes: PlannedTextChange[]): string {
     .sort((left, right) => right.from - left.from)
     .reduce(
       (current, change) =>
-        current.slice(0, change.from) + change.insert + current.slice(change.to),
+        current.slice(0, change.from) +
+        change.insert +
+        current.slice(change.to),
       text,
     );
 }
@@ -49,11 +56,11 @@ describe("Markdown mutation planning", () => {
     ].join("\n");
 
     const result = mutate(source, "word", "add-highlight");
-    expect(result.plan.changes.map((change) => source.slice(0, change.from).split("\n").length)).toEqual([
-      4,
-      5,
-      11,
-    ]);
+    expect(
+      result.plan.changes.map(
+        (change) => source.slice(0, change.from).split("\n").length,
+      ),
+    ).toEqual([4, 5, 11]);
     expect(result.text).toContain("# ==word==");
     expect(result.text).toContain("plain ==word==");
     expect(result.text).toContain("title: word");
@@ -90,7 +97,9 @@ describe("Markdown mutation planning", () => {
     const source = "==Word== ==other== `==Word==` [==Word==](url) ====Word====";
     const result = mutate(source, "word", "remove-highlight");
     expect(result.plan.count).toBe(1);
-    expect(result.text).toBe("Word ==other== `==Word==` [==Word==](url) ====Word====");
+    expect(result.text).toBe(
+      "Word ==other== `==Word==` [==Word==](url) ====Word====",
+    );
   });
 
   it("removes only one hash from exact tag tokens", () => {

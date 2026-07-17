@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import { beforeEach, describe, expect, it } from "vitest";
 import { registerKeywordReadingViewPostProcessor } from "src/readingViewKeywords";
 
@@ -58,14 +63,21 @@ describe("Reading View keyword classes", () => {
 
     expect(marks.map((mark) => mark.textContent)).toEqual(["Word", "word"]);
     expect(marks[0].getAttribute("data-occura-group-id")).toBe("first");
-    expect((marks[0] as HTMLElement).style.backgroundColor).toBe("rgb(255, 0, 0)");
+    expect((marks[0] as HTMLElement).style.backgroundColor).toBe(
+      "rgb(255, 0, 0)",
+    );
   });
 
   it("honors case sensitivity and the master enabled setting", () => {
-    const caseSensitive = highlight("<p>Word word</p>", [group({ caseSensitive: true })]);
-    expect(Array.from(caseSensitive.querySelectorAll("mark"), (mark) => mark.textContent)).toEqual([
-      "word",
+    const caseSensitive = highlight("<p>Word word</p>", [
+      group({ caseSensitive: true }),
     ]);
+    expect(
+      Array.from(
+        caseSensitive.querySelectorAll("mark"),
+        (mark) => mark.textContent,
+      ),
+    ).toEqual(["word"]);
 
     const disabled = highlight("<p>word</p>", [group()], false);
     expect(disabled.querySelectorAll("mark")).toHaveLength(0);
@@ -99,13 +111,22 @@ describe("Reading View keyword classes", () => {
   });
 
   it("skips excluded elements and existing keyword marks", () => {
-    const root = highlight(`
+    const root = highlight(
+      `
       <p>word</p><code>word</code><a>word</a><div class="metadata-container">word</div>
       <textarea>word</textarea><button>word</button><div class="math-block">word</div>
       <mark class="occura-keyword-reading-occurrence">word</mark>
-    `, [group()]);
+    `,
+      [group()],
+    );
 
-    expect(root.querySelectorAll("mark.occura-keyword-reading-occurrence")).toHaveLength(2);
-    expect(root.querySelectorAll("code mark, a mark, .metadata-container mark, textarea mark, button mark, .math-block mark")).toHaveLength(0);
+    expect(
+      root.querySelectorAll("mark.occura-keyword-reading-occurrence"),
+    ).toHaveLength(2);
+    expect(
+      root.querySelectorAll(
+        "code mark, a mark, .metadata-container mark, textarea mark, button mark, .math-block mark",
+      ),
+    ).toHaveLength(0);
   });
 });

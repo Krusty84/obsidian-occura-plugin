@@ -1,8 +1,11 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Alexey Sedoykin
+ * SPDX-License-Identifier: MIT
+ */
+
 import type OccuraPlugin from "main";
 import { MarkdownView } from "obsidian";
-import {
-  validateSelectionQuery,
-} from "src/editorOccurrences";
+import { validateSelectionQuery } from "src/editorOccurrences";
 import { findMatches } from "src/matching";
 
 export interface ReadingViewOccurrenceController {
@@ -44,9 +47,7 @@ export function registerReadingViewOccurrenceHighlighting(
   return controller;
 }
 
-class ReadingViewOccurrenceControllerImpl
-  implements ReadingViewOccurrenceController
-{
+class ReadingViewOccurrenceControllerImpl implements ReadingViewOccurrenceController {
   private readonly registeredDocuments = new WeakSet<Document>();
   private readonly pointerDownDocuments = new WeakSet<Document>();
   private debounceTimer: number | null = null;
@@ -122,7 +123,10 @@ class ReadingViewOccurrenceControllerImpl
   }
 
   private scheduleSelectionHandling(doc: Document): void {
-    if (this.isApplyingHighlights || Date.now() < this.ignoreSelectionChangesUntil) {
+    if (
+      this.isApplyingHighlights ||
+      Date.now() < this.ignoreSelectionChangesUntil
+    ) {
       return;
     }
 
@@ -147,7 +151,10 @@ class ReadingViewOccurrenceControllerImpl
   }
 
   private handleSelectionChange(doc: Document): void {
-    if (this.isApplyingHighlights || Date.now() < this.ignoreSelectionChangesUntil) {
+    if (
+      this.isApplyingHighlights ||
+      Date.now() < this.ignoreSelectionChangesUntil
+    ) {
       return;
     }
 
@@ -312,10 +319,7 @@ function restoreReadingViewSelection(
   if (!selection) return;
 
   if (!selection.isCollapsed) {
-    if (
-      selection.anchorNode?.isConnected &&
-      selection.focusNode?.isConnected
-    ) {
+    if (selection.anchorNode?.isConnected && selection.focusNode?.isConnected) {
       return;
     }
   }
@@ -418,7 +422,10 @@ function clearReadingViewDynamicHighlights(root: HTMLElement): void {
   }
 }
 
-function hasDynamicHighlightsForQuery(root: HTMLElement, query: string): boolean {
+function hasDynamicHighlightsForQuery(
+  root: HTMLElement,
+  query: string,
+): boolean {
   const marks = Array.from(
     root.querySelectorAll("mark.occura-reading-selection-occurrence"),
   );
@@ -565,11 +572,16 @@ function wrapMatchesInTextNode(
 
   for (const currentMatch of matches) {
     if (currentMatch.from > cursor) {
-      fragment.appendChild(doc.createTextNode(text.slice(cursor, currentMatch.from)));
+      fragment.appendChild(
+        doc.createTextNode(text.slice(cursor, currentMatch.from)),
+      );
     }
 
     const mark = doc.createElement("mark");
-    mark.classList.add("found-occurrence", "occura-reading-selection-occurrence");
+    mark.classList.add(
+      "found-occurrence",
+      "occura-reading-selection-occurrence",
+    );
     mark.dataset.occuraQuery = query;
     mark.textContent = text.slice(currentMatch.from, currentMatch.to);
     fragment.appendChild(mark);
