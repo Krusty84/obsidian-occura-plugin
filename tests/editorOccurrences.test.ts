@@ -92,6 +92,25 @@ describe("editor occurrences", () => {
     view.destroy();
   });
 
+  it.each([false, true])(
+    "highlights partial words when phrase highlighting is %s",
+    (allowPhraseSelectionHighlighting) => {
+      vi.useFakeTimers();
+      const host = createHost({ allowPhraseSelectionHighlighting });
+      const view = createView("Double Double", { anchor: 0, head: 4 }, host);
+
+      vi.advanceTimersByTime(120);
+
+      expect(
+        Array.from(view.dom.querySelectorAll(".found-occurrence"), (mark) =>
+          mark.textContent,
+        ),
+      ).toEqual(["Doub", "Doub"]);
+      expect(host.setOccurrenceStatus).toHaveBeenCalledWith("Doub", 2, 0);
+      view.destroy();
+    },
+  );
+
   it("replaces rapid pending selection work and keeps the final query", () => {
     vi.useFakeTimers();
     const host = createHost();

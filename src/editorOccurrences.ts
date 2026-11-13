@@ -62,7 +62,7 @@ const editorMatchCache = new WeakMap<EditorView, CachedMatches>();
 function matchingOptions(settings: OccuraPluginSettings): MatchOptions {
   return {
     caseSensitive: settings.occuraCaseSensitive,
-    wholeWord: true,
+    wholeWord: false,
     minimumLength: settings.minimumSelectionLength,
   };
 }

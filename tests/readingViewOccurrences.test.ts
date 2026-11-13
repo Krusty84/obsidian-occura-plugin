@@ -224,10 +224,24 @@ describe("Reading View occurrences", () => {
     expect(document.getSelection()?.toString()).toBe("beta");
   });
 
-  it("does not match a selected Unicode word inside a longer word", () => {
+  it("highlights partial Unicode words and preserves the selection", () => {
+    vi.useFakeTimers();
     const root = createRoot("<p>мир мирный МИР</p>");
-    expect(
-      applyReadingViewDynamicHighlights(root, "мир", createPlugin([root])),
-    ).toBe(2);
+    const plugin = createControllerPlugin(root);
+    registerReadingViewOccurrenceHighlighting(plugin);
+    const text = root.querySelector("p")?.firstChild as Text;
+
+    const selection = selectText(text, 4, 7);
+    document.dispatchEvent(new Event("selectionchange"));
+    vi.advanceTimersByTime(120);
+
+    const marks = getReadingViewDynamicOccurrenceMarks(root, "мир");
+    expect(marks.map((mark) => mark.textContent)).toEqual([
+      "мир",
+      "мир",
+      "МИР",
+    ]);
+    expect(selection.toString()).toBe("мир");
+    expect(selection.getRangeAt(0).intersectsNode(marks[1])).toBe(true);
   });
 });

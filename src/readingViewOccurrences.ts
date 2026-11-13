@@ -560,7 +560,7 @@ function wrapMatchesInTextNode(
   const text = textNode.nodeValue ?? "";
   const matches = findMatches(text, query, {
     caseSensitive,
-    wholeWord: true,
+    wholeWord: false,
     minimumLength,
   });
 
