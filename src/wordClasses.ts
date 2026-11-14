@@ -5,6 +5,7 @@
 
 import { App, Editor, Notice, SuggestModal } from "obsidian";
 import type OccuraPlugin from "main";
+import { keywordColorStyle } from "src/keywordColors";
 import type { KeywordGroup } from "src/settings";
 
 type SubmenuCapableMenuItem = {
@@ -51,8 +52,9 @@ class KeywordGroupSuggestModal extends SuggestModal<KeywordGroup> {
       cls: "occura-keyword-group-suggestion",
     });
     row.createSpan({
+      cls: "occura-color-swatch",
       attr: {
-        style: `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`,
+        style: keywordColorStyle(group.colorLight, group.colorDark),
       },
     });
     row.createSpan({ text: group.name });

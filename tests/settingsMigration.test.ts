@@ -36,12 +36,42 @@ describe("migrateSettings", () => {
     expect(settings.highlightColorOccurrencesDark).toBe("#FFFF00");
   });
 
+  it("migrates each keyword class color and preserves saved scheme colors", () => {
+    const { settings, changed } = migrateSettings({
+      keywordGroups: [
+        { color: "#123456" },
+        { color: "#abcdef", colorLight: "#ff0000" },
+        { colorDark: "#0000ff" },
+        {},
+      ],
+    });
+
+    expect(
+      settings.keywordGroups.map(({ colorLight, colorDark }) => [
+        colorLight,
+        colorDark,
+      ]),
+    ).toEqual([
+      ["#123456", "#123456"],
+      ["#ff0000", "#abcdef"],
+      ["#66ccff", "#0000ff"],
+      ["#66ccff", "#66ccff"],
+    ]);
+    expect(settings.keywordGroups[0]).not.toHaveProperty("color");
+    expect(changed).toBe(true);
+    expect(migrateSettings(JSON.parse(JSON.stringify(settings)))).toEqual({
+      settings,
+      changed: false,
+    });
+  });
+
   it("removes obsolete hotkeys and preserves keyword groups", () => {
     const keywordGroups = [
       {
         id: "group-1",
         name: "Terms",
-        color: "#123456",
+        colorLight: "#123456",
+        colorDark: "#654321",
         keywords: ["alpha", "beta"],
         enabled: true,
         caseSensitive: true,

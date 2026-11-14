@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+import { DEFAULT_KEYWORD_COLOR } from "src/keywordColors";
 import {
   DEFAULT_SETTINGS,
   type KeywordGroup,
@@ -44,11 +45,13 @@ function migrateKeywordGroups(value: unknown): KeywordGroup[] {
           (keyword): keyword is string => typeof keyword === "string",
         )
       : [];
+    const legacyColor = stringValue(candidate.color, DEFAULT_KEYWORD_COLOR);
 
     groups.push({
       id: stringValue(candidate.id, `legacy-${index}`),
       name: stringValue(candidate.name, "Unnamed"),
-      color: stringValue(candidate.color, "#66ccff"),
+      colorLight: stringValue(candidate.colorLight, legacyColor),
+      colorDark: stringValue(candidate.colorDark, legacyColor),
       keywords: [...keywords],
       enabled: booleanValue(candidate.enabled, true),
       caseSensitive: booleanValue(candidate.caseSensitive, false),

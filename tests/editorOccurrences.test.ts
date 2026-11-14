@@ -53,6 +53,35 @@ describe("editor occurrences", () => {
     document.body.replaceChildren();
   });
 
+  it("uses both colors from the matching keyword class", () => {
+    const host = createHost({
+      autoKeywordsHighlightEnabled: true,
+      keywordGroups: [
+        {
+          id: "first",
+          name: "First",
+          colorLight: "#ff0000",
+          colorDark: "#990000",
+          keywords: ["word"],
+          enabled: true,
+          caseSensitive: false,
+        },
+      ],
+    });
+    const view = createView("word sword", { anchor: 0, head: 0 }, host);
+    const marks = view.dom.querySelectorAll<HTMLElement>(".keyword-occurrence");
+
+    expect(marks).toHaveLength(1);
+    expect(marks[0].textContent).toBe("word");
+    expect(marks[0].style.getPropertyValue("--occura-keyword-color-light")).toBe(
+      "#ff0000",
+    );
+    expect(marks[0].style.getPropertyValue("--occura-keyword-color-dark")).toBe(
+      "#990000",
+    );
+    view.destroy();
+  });
+
   it("uses complete-document matches while filtering decorations to viewports", () => {
     const state = EditorState.create({
       doc: "word hidden word visible word",

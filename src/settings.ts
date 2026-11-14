@@ -5,11 +5,13 @@
 
 import { App, Modal, PluginSettingTab, Setting, TextComponent } from "obsidian";
 import type OccuraPlugin from "main";
+import { DEFAULT_KEYWORD_COLOR, keywordColorStyle } from "src/keywordColors";
 
 export interface KeywordGroup {
   id: string;
   name: string;
-  color: string;
+  colorLight: string;
+  colorDark: string;
   keywords: string[];
   enabled: boolean;
   caseSensitive: boolean;
@@ -119,22 +121,23 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
     generalDetails.open = true;
     generalDetails.createEl("summary", { text: "General" });
 
+    const occurrenceColorSetting = new Setting(generalDetails)
+      .setName("Highlight color (occurrences)")
+      .setDesc("Highlight color for text matches in Light and Dark modes.");
     for (const [scheme, key] of [
       ["Light", "highlightColorOccurrencesLight"],
       ["Dark", "highlightColorOccurrencesDark"],
     ] as const) {
-      new Setting(generalDetails)
-        .setName(`Highlight color (occurrences, ${scheme})`)
-        .addText((text) => {
-          text.inputEl.type = "color";
-          text
-            .setValue(this.plugin.settings[key])
-            .onChange(async (value) => {
-              this.plugin.settings[key] = value;
-              await this.plugin.saveSettings();
-              this.plugin.updateHighlightStyle();
-            });
-        });
+      this.addLabeledColorInput(
+        occurrenceColorSetting,
+        scheme,
+        this.plugin.settings[key],
+        async (value) => {
+          this.plugin.settings[key] = value;
+          await this.plugin.saveSettings();
+          this.plugin.updateHighlightStyle();
+        },
+      );
     }
 
     new Setting(generalDetails)
@@ -249,10 +252,27 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
     });
   }
 
+  private addLabeledColorInput(
+    setting: Setting,
+    scheme: string,
+    value: string,
+    onChange: (value: string) => Promise<void>,
+  ): void {
+    const label = setting.controlEl.createEl("label", {
+      cls: "occura-occurrence-color",
+      text: scheme,
+    });
+    setting.addText((text) => {
+      text.inputEl.type = "color";
+      label.appendChild(text.inputEl);
+      text.setValue(value).onChange(onChange);
+    });
+  }
+
   private renderWordClassesSettings(containerEl: HTMLElement): void {
     new Setting(containerEl)
       .setName("Word classes")
-      .setDesc("Each class has a color and its own word list.")
+      .setDesc("Each class has Light and Dark colors and its own word list.")
       .addButton((btn) => {
         btn
           .setButtonText("Add Class")
@@ -261,7 +281,8 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
             const group: KeywordGroup = {
               id: crypto?.randomUUID?.() ?? String(Date.now()),
               name: "New class",
-              color: "#66ccff",
+              colorLight: DEFAULT_KEYWORD_COLOR,
+              colorDark: DEFAULT_KEYWORD_COLOR,
               keywords: [],
               enabled: true,
               caseSensitive: false,
@@ -290,9 +311,9 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
       const swatch = summary.createSpan({ cls: "occura-color-swatch" });
       swatch.setAttr(
         "style",
-        `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`,
+        keywordColorStyle(group.colorLight, group.colorDark),
       );
-      summary.createSpan({ text: group.name });
+      const groupName = summary.createSpan({ text: group.name });
 
       new Setting(groupDetails)
         .setName("Class name")
@@ -301,15 +322,7 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
             group.name = value || "Unnamed";
             await this.plugin.saveSettings();
             this.plugin.updateEditors();
-            summary.empty();
-            const updatedSwatch = summary.createSpan({
-              cls: "occura-color-swatch",
-            });
-            updatedSwatch.setAttr(
-              "style",
-              `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`,
-            );
-            summary.createSpan({ text: group.name });
+            groupName.setText(group.name);
           });
         })
         .addExtraButton((button) => {
@@ -339,21 +352,28 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
           });
         });
 
-      new Setting(groupDetails)
+      const colorSetting = new Setting(groupDetails)
         .setName("Color")
-        .setDesc("Set the color used to highlight all words occurrences.")
-        .addText((text) => {
-          text.inputEl.type = "color";
-          text.setValue(group.color).onChange(async (value) => {
-            group.color = value || "#66ccff";
+        .setDesc("Highlight color for this class in Light and Dark modes.");
+      for (const [scheme, key] of [
+        ["Light", "colorLight"],
+        ["Dark", "colorDark"],
+      ] as const) {
+        this.addLabeledColorInput(
+          colorSetting,
+          scheme,
+          group[key],
+          async (value) => {
+            group[key] = value || DEFAULT_KEYWORD_COLOR;
             await this.plugin.saveSettings();
             swatch.setAttr(
               "style",
-              `display:inline-block;width:12px;height:12px;border-radius:3px;background:${group.color};margin-right:8px;`,
+              keywordColorStyle(group.colorLight, group.colorDark),
             );
             this.plugin.updateEditors();
-          });
-        });
+          },
+        );
+      }
 
       new Setting(groupDetails)
         .setName("Case sensitive")

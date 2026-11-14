@@ -4,11 +4,12 @@
  */
 
 import type OccuraPlugin from "main";
+import { keywordColorStyle } from "src/keywordColors";
 import { findMatches } from "src/matching";
 
 type PreparedKeyword = {
   keyword: string;
-  color: string;
+  colorStyle: string;
   groupId: string;
   groupName: string;
   caseSensitive: boolean;
@@ -19,7 +20,7 @@ type PreparedKeyword = {
 type TextMatch = {
   from: number;
   to: number;
-  color: string;
+  colorStyle: string;
   groupId: string;
   groupName: string;
   groupIndex: number;
@@ -64,6 +65,7 @@ function getPreparedKeywords(plugin: OccuraPlugin): PreparedKeyword[] {
   plugin.settings.keywordGroups.forEach((group, groupIndex) => {
     if (!group?.enabled) return;
 
+    const colorStyle = keywordColorStyle(group.colorLight, group.colorDark);
     const keywords = (group.keywords ?? [])
       .map((keyword) => keyword.trim())
       .filter(Boolean);
@@ -71,7 +73,7 @@ function getPreparedKeywords(plugin: OccuraPlugin): PreparedKeyword[] {
     keywords.forEach((keyword, keywordIndex) => {
       prepared.push({
         keyword,
-        color: group.color,
+        colorStyle,
         groupId: group.id,
         groupName: group.name,
         caseSensitive: !!group.caseSensitive,
@@ -155,7 +157,7 @@ function collectMatchesForText(
       candidates.push({
         from: match.from,
         to: match.to,
-        color: item.color,
+        colorStyle: item.colorStyle,
         groupId: item.groupId,
         groupName: item.groupName,
         groupIndex: item.groupIndex,
@@ -209,7 +211,7 @@ function wrapKeywordMatchesInTextNode(
       "keyword-occurrence",
       "occura-keyword-reading-occurrence",
     );
-    mark.style.backgroundColor = match.color;
+    mark.setAttribute("style", match.colorStyle);
     mark.dataset.occuraGroupId = match.groupId;
     mark.dataset.occuraGroupName = match.groupName;
     mark.textContent = text.slice(match.from, match.to);

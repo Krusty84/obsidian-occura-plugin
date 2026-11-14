@@ -6,8 +6,27 @@
     --occura-highlight-color-occurrences: var(--occura-highlight-color-occurrences-dark);
 }
 
+.theme-dark .keyword-occurrence,
+.theme-dark .occura-color-swatch {
+    --occura-keyword-color: var(--occura-keyword-color-dark);
+}
+
 .found-occurrence {
     background-color: var(--occura-highlight-color-occurrences, #ffff00);
+}
+
+.occura-occurrence-color {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.occura-color-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 8px;
 }
 
 .highlight-toggle-icon {

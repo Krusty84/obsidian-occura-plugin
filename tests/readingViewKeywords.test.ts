@@ -5,17 +5,13 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import { registerKeywordReadingViewPostProcessor } from "src/readingViewKeywords";
+import type { KeywordGroup } from "src/settings";
 
-type Group = {
-  id: string;
-  name: string;
-  color: string;
-  keywords: string[];
-  enabled: boolean;
-  caseSensitive: boolean;
-};
-
-function highlight(html: string, groups: Group[], enabled = true): HTMLElement {
+function highlight(
+  html: string,
+  groups: KeywordGroup[],
+  enabled = true,
+): HTMLElement {
   const root = document.createElement("div");
   root.innerHTML = html;
   document.body.appendChild(root);
@@ -37,11 +33,12 @@ function highlight(html: string, groups: Group[], enabled = true): HTMLElement {
   return root;
 }
 
-function group(overrides: Partial<Group> = {}): Group {
+function group(overrides: Partial<KeywordGroup> = {}): KeywordGroup {
   return {
     id: "first",
     name: "First",
-    color: "#ff0000",
+    colorLight: "#ff0000",
+    colorDark: "#990000",
     keywords: ["word"],
     enabled: true,
     caseSensitive: false,
@@ -63,8 +60,11 @@ describe("Reading View keyword classes", () => {
 
     expect(marks.map((mark) => mark.textContent)).toEqual(["Word", "word"]);
     expect(marks[0].getAttribute("data-occura-group-id")).toBe("first");
-    expect((marks[0] as HTMLElement).style.backgroundColor).toBe(
-      "rgb(255, 0, 0)",
+    expect(marks[0].style.getPropertyValue("--occura-keyword-color-light")).toBe(
+      "#ff0000",
+    );
+    expect(marks[0].style.getPropertyValue("--occura-keyword-color-dark")).toBe(
+      "#990000",
     );
   });
 
@@ -95,7 +95,7 @@ describe("Reading View keyword classes", () => {
   it("uses earlier group precedence for identical matches", () => {
     const root = highlight("<p>word</p>", [
       group(),
-      group({ id: "second", name: "Second", color: "#0000ff" }),
+      group({ id: "second", name: "Second", colorLight: "#0000ff" }),
     ]);
     const mark = root.querySelector("mark") as HTMLElement;
 

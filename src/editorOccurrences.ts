@@ -11,8 +11,9 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import type { OccuraPluginSettings } from "src/settings";
+import { keywordColorStyle } from "src/keywordColors";
 import { findMatches, type MatchOptions, type TextMatch } from "src/matching";
+import type { KeywordGroup, OccuraPluginSettings } from "src/settings";
 
 export interface EditorOccurrenceHost {
   settings: OccuraPluginSettings;
@@ -266,10 +267,12 @@ export function highlightOccurrenceExtension(host: EditorOccurrenceHost) {
         }, SELECTION_DEBOUNCE_MS);
       }
 
-      private getGroupDecoration(color: string): Decoration {
+      private getGroupDecoration(group: KeywordGroup): Decoration {
         return Decoration.mark({
           class: "keyword-occurrence",
-          attributes: { style: `background-color: ${color};` },
+          attributes: {
+            style: keywordColorStyle(group.colorLight, group.colorDark),
+          },
           priority: 50,
         });
       }
@@ -305,7 +308,7 @@ export function highlightOccurrenceExtension(host: EditorOccurrenceHost) {
         ) {
           for (const group of host.settings.keywordGroups) {
             if (!group?.enabled) continue;
-            const decoration = this.getGroupDecoration(group.color);
+            const decoration = this.getGroupDecoration(group);
 
             for (const keyword of group.keywords ?? []) {
               const query = keyword.trim();
