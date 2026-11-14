@@ -1,6 +1,6 @@
 {
   "name": "obsidian-occura-plugin",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "Highlighting all occurrences of the selected word, similar to Notepad++ or any IDE.",
   "main": "main.js",
   "scripts": {
