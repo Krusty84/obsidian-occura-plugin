@@ -6,6 +6,13 @@ I couldn't find the usual functionality that I used in Notepad++ or different ID
 
 ### Features
 
+#### Release 1.6.3
+
+Support for Obsidian color schemes has been added, thanks to dear [werunom](https://github.com/werunom) for the idea.
+<img width="647" height="121" alt="image" src="https://github.com/user-attachments/assets/085fa5ef-a675-43d3-9520-8d02c294bef4" />
+
+<img width="637" height="488" alt="image" src="https://github.com/user-attachments/assets/4a62fe27-42c9-4b8e-a142-1e7b3745e60a" />
+
 #### Release 1.6.2
 
 This release stabilizes occurrence matching and navigation across Source Mode,
