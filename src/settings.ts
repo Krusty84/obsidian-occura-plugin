@@ -17,7 +17,8 @@ export interface KeywordGroup {
 
 // Interface defining plugin settings
 export interface OccuraPluginSettings {
-  highlightColorOccurrences: string;
+  highlightColorOccurrencesLight: string;
+  highlightColorOccurrencesDark: string;
   highlightColorKeywords: string;
   occuraPluginEnabled: boolean;
   statusBarOccurrencesNumberEnabled: boolean;
@@ -32,7 +33,8 @@ export interface OccuraPluginSettings {
 }
 
 export const DEFAULT_SETTINGS: OccuraPluginSettings = {
-  highlightColorOccurrences: "#FFFF00",
+  highlightColorOccurrencesLight: "#FFFF00",
+  highlightColorOccurrencesDark: "#FFFF00",
   highlightColorKeywords: "#bdfc64",
   occuraPluginEnabled: true,
   statusBarOccurrencesNumberEnabled: true,
@@ -117,19 +119,23 @@ export class OccuraPluginSettingTab extends PluginSettingTab {
     generalDetails.open = true;
     generalDetails.createEl("summary", { text: "General" });
 
-    new Setting(generalDetails)
-      .setName("Highlight color (occurrences)")
-      .setDesc("Set the color used to highlight all occurrences.")
-      .addText((text) => {
-        text.inputEl.type = "color";
-        text
-          .setValue(this.plugin.settings.highlightColorOccurrences)
-          .onChange(async (v) => {
-            this.plugin.settings.highlightColorOccurrences = v;
-            await this.plugin.saveSettings();
-            this.plugin.updateHighlightStyle();
-          });
-      });
+    for (const [scheme, key] of [
+      ["Light", "highlightColorOccurrencesLight"],
+      ["Dark", "highlightColorOccurrencesDark"],
+    ] as const) {
+      new Setting(generalDetails)
+        .setName(`Highlight color (occurrences, ${scheme})`)
+        .addText((text) => {
+          text.inputEl.type = "color";
+          text
+            .setValue(this.plugin.settings[key])
+            .onChange(async (value) => {
+              this.plugin.settings[key] = value;
+              await this.plugin.saveSettings();
+              this.plugin.updateHighlightStyle();
+            });
+        });
+    }
 
     new Setting(generalDetails)
       .setName("Case sensitive (occurrences)")

@@ -1,3 +1,11 @@
+.theme-light {
+    --occura-highlight-color-occurrences: var(--occura-highlight-color-occurrences-light);
+}
+
+.theme-dark {
+    --occura-highlight-color-occurrences: var(--occura-highlight-color-occurrences-dark);
+}
+
 .found-occurrence {
     background-color: var(--occura-highlight-color-occurrences, #ffff00);
 }

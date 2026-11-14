@@ -68,10 +68,18 @@ function migrateMinimumSelectionLength(value: unknown): number {
 
 export function migrateSettings(raw: unknown): SettingsMigrationResult {
   const source = isRecord(raw) ? raw : {};
+  const legacyOccurrenceColor =
+    typeof source.highlightColorOccurrences === "string"
+      ? source.highlightColorOccurrences
+      : undefined;
   const settings: OccuraPluginSettings = {
-    highlightColorOccurrences: stringValue(
-      source.highlightColorOccurrences,
-      DEFAULT_SETTINGS.highlightColorOccurrences,
+    highlightColorOccurrencesLight: stringValue(
+      source.highlightColorOccurrencesLight,
+      legacyOccurrenceColor ?? DEFAULT_SETTINGS.highlightColorOccurrencesLight,
+    ),
+    highlightColorOccurrencesDark: stringValue(
+      source.highlightColorOccurrencesDark,
+      legacyOccurrenceColor ?? DEFAULT_SETTINGS.highlightColorOccurrencesDark,
     ),
     highlightColorKeywords: stringValue(
       source.highlightColorKeywords,

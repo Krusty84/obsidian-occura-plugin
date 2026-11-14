@@ -7,6 +7,35 @@ import { describe, expect, it } from "vitest";
 import { migrateSettings } from "src/settingsMigration";
 
 describe("migrateSettings", () => {
+  it("copies the legacy occurrence color to both schemes", () => {
+    const { settings, changed } = migrateSettings({
+      highlightColorOccurrences: "#123456",
+    });
+
+    expect(settings.highlightColorOccurrencesLight).toBe("#123456");
+    expect(settings.highlightColorOccurrencesDark).toBe("#123456");
+    expect(settings).not.toHaveProperty("highlightColorOccurrences");
+    expect(changed).toBe(true);
+  });
+
+  it("preserves scheme colors and fills only missing colors", () => {
+    const { settings } = migrateSettings({
+      highlightColorOccurrences: "#123456",
+      highlightColorOccurrencesDark: "#abcdef",
+    });
+
+    expect(settings.highlightColorOccurrencesLight).toBe("#123456");
+    expect(settings.highlightColorOccurrencesDark).toBe("#abcdef");
+    expect(migrateSettings(settings)).toEqual({ settings, changed: false });
+  });
+
+  it("uses yellow for both schemes on a new install", () => {
+    const { settings } = migrateSettings(null);
+
+    expect(settings.highlightColorOccurrencesLight).toBe("#FFFF00");
+    expect(settings.highlightColorOccurrencesDark).toBe("#FFFF00");
+  });
+
   it("removes obsolete hotkeys and preserves keyword groups", () => {
     const keywordGroups = [
       {

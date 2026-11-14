@@ -44,6 +44,51 @@ describe("Occura lifecycle and input compatibility", () => {
     document.body.replaceChildren();
   });
 
+  it("sets, updates, and removes both occurrence colors across workspace windows", async () => {
+    const { app, emit } = createApp();
+    const plugin = new OccuraPlugin(app as never, {} as never) as OccuraPlugin & {
+      _runCleanups(): void;
+    };
+    await plugin.saveData({
+      highlightColorOccurrencesLight: "#ffdd00",
+      highlightColorOccurrencesDark: "#5172b3",
+    });
+
+    const lightProperty = "--occura-highlight-color-occurrences-light";
+    const darkProperty = "--occura-highlight-color-occurrences-dark";
+    const popout = document.implementation.createHTMLDocument();
+    const mainStyle = document.documentElement.style;
+    const popoutStyle = popout.documentElement.style;
+    await plugin.onload();
+
+    try {
+      expect(mainStyle.getPropertyValue(lightProperty)).toBe("#ffdd00");
+      expect(mainStyle.getPropertyValue(darkProperty)).toBe("#5172b3");
+
+      vi.spyOn(app.workspace, "iterateAllLeaves").mockImplementation((visit) => {
+        visit({ view: { containerEl: { doc: popout } } });
+      });
+      emit("layout-change");
+      expect(popoutStyle.getPropertyValue(lightProperty)).toBe("#ffdd00");
+      expect(popoutStyle.getPropertyValue(darkProperty)).toBe("#5172b3");
+
+      plugin.settings.highlightColorOccurrencesDark = "#69428a";
+      plugin.updateHighlightStyle();
+      for (const style of [mainStyle, popoutStyle]) {
+        expect(style.getPropertyValue(lightProperty)).toBe("#ffdd00");
+        expect(style.getPropertyValue(darkProperty)).toBe("#69428a");
+      }
+    } finally {
+      plugin.onunload();
+      plugin._runCleanups();
+    }
+
+    for (const style of [mainStyle, popoutStyle]) {
+      expect(style.getPropertyValue(lightProperty)).toBe("");
+      expect(style.getPropertyValue(darkProperty)).toBe("");
+    }
+  });
+
   it("creates one status item and does not register a global keydown handler", async () => {
     const { app, emit } = createApp();
     const addWindowListener = vi.spyOn(window, "addEventListener");

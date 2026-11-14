@@ -31,6 +31,9 @@ import { registerKeywordReadingViewPostProcessor } from "src/readingViewKeywords
 import { registerWordClassesEditorMenu } from "src/wordClasses";
 import { migrateSettings } from "src/settingsMigration";
 
+const OCCURRENCE_LIGHT_COLOR_PROPERTY = "--occura-highlight-color-occurrences-light";
+const OCCURRENCE_DARK_COLOR_PROPERTY = "--occura-highlight-color-occurrences-dark";
+
 export default class OccuraPlugin
   extends Plugin
   implements EditorOccurrenceHost
@@ -230,8 +233,12 @@ export default class OccuraPlugin
   updateHighlightStyle() {
     for (const doc of this.getWorkspaceDocuments()) {
       doc.documentElement.style.setProperty(
-        "--occura-highlight-color-occurrences",
-        this.settings.highlightColorOccurrences,
+        OCCURRENCE_LIGHT_COLOR_PROPERTY,
+        this.settings.highlightColorOccurrencesLight,
+      );
+      doc.documentElement.style.setProperty(
+        OCCURRENCE_DARK_COLOR_PROPERTY,
+        this.settings.highlightColorOccurrencesDark,
       );
     }
   }
@@ -344,9 +351,8 @@ export default class OccuraPlugin
     this.readingViewOccurrences?.clearAll();
     this.clearOccurrenceStatus();
     for (const doc of this.getWorkspaceDocuments()) {
-      doc.documentElement.style.removeProperty(
-        "--occura-highlight-color-occurrences",
-      );
+      doc.documentElement.style.removeProperty(OCCURRENCE_LIGHT_COLOR_PROPERTY);
+      doc.documentElement.style.removeProperty(OCCURRENCE_DARK_COLOR_PROPERTY);
     }
     // Remove the icon from all title bars
     const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
