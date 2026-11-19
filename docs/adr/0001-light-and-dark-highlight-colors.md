@@ -33,13 +33,13 @@ Occura sets CSS variables in each workspace document from `highlightColorOccurre
 
 | Symbol | File | Type | Lines |
 |---|---|---|---|
-| `OccuraPluginSettings.highlightColorOccurrencesLight` | `src/settings.ts` | property | `22` |
-| `OccuraPluginSettings.highlightColorOccurrencesDark` | `src/settings.ts` | property | `23` |
-| `KeywordGroup.colorLight` | `src/settings.ts` | property | `13` |
-| `KeywordGroup.colorDark` | `src/settings.ts` | property | `14` |
-| `OccuraPlugin.updateHighlightStyle` | `main.ts` | method | `233` |
-| `keywordColorStyle` | `src/keywordColors.ts` | function | `8` |
-| `OccuraPluginSettingTab.addLabeledColorInput` | `src/settings.ts` | method | `255` |
+| `OccuraPluginSettings.highlightColorOccurrencesLight` | `src/settings.ts` | property | [22](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/settings.ts#L22) |
+| `OccuraPluginSettings.highlightColorOccurrencesDark` | `src/settings.ts` | property | [23](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/settings.ts#L23) |
+| `KeywordGroup.colorLight` | `src/settings.ts` | property | [13](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/settings.ts#L13) |
+| `KeywordGroup.colorDark` | `src/settings.ts` | property | [14](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/settings.ts#L14) |
+| `OccuraPlugin.updateHighlightStyle` | `main.ts` | method | [233](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/main.ts#L233) |
+| `keywordColorStyle` | `src/keywordColors.ts` | function | [8](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/keywordColors.ts#L8) |
+| `OccuraPluginSettingTab.addLabeledColorInput` | `src/settings.ts` | method | [255](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/settings.ts#L255) |
 
 ## Implementation Commit
 

@@ -33,8 +33,8 @@ Call `migrateSettings` in `loadSettings`. Save the result when `changed` is true
 
 | Symbol | File | Type | Lines |
 |---|---|---|---|
-| `OccuraPlugin.loadSettings` | `main.ts` | method | `145` |
-| `migrateSettings` | `src/settingsMigration.ts` | function | `72` |
+| `OccuraPlugin.loadSettings` | `main.ts` | method | [145](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/main.ts#L145) |
+| `migrateSettings` | `src/settingsMigration.ts` | function | [72](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/settingsMigration.ts#L72) |
 
 ## Implementation Commit
 

@@ -33,7 +33,7 @@ Run `npm ci` on Node.js 20. Run `validate-release.mjs` after the production buil
 
 | Symbol | File | Type | Lines |
 |---|---|---|---|
-| `fail` | `validate-release.mjs` | function | `7` |
+| `fail` | `validate-release.mjs` | function | [7](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/validate-release.mjs#L7) |
 
 ## Implementation Commit
 

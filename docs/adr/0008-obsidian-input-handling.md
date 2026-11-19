@@ -35,7 +35,7 @@ Remove the document click handler and the window `keydown` listener. Keep the `a
 
 | Symbol | File | Type | Lines |
 |---|---|---|---|
-| `OccuraPlugin.onload` | `main.ts` | method | `46` |
+| `OccuraPlugin.onload` | `main.ts` | method | [46](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/main.ts#L46) |
 
 ## Implementation Commit
 
