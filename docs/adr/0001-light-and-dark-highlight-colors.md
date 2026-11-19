@@ -29,6 +29,18 @@ When Occura loads old settings, it copies the old color to each missing color fi
 
 Occura sets CSS variables in each workspace document from `highlightColorOccurrencesLight` and `highlightColorOccurrencesDark`. Keyword marks and class color swatches use CSS variables from `colorLight` and `colorDark`. Each color setting has two controls in one row.
 
+## Related Symbols
+
+| Symbol | File | Type | Lines |
+|---|---|---|---|
+| `OccuraPluginSettings.highlightColorOccurrencesLight` | `src/settings.ts` | property | `22` |
+| `OccuraPluginSettings.highlightColorOccurrencesDark` | `src/settings.ts` | property | `23` |
+| `KeywordGroup.colorLight` | `src/settings.ts` | property | `13` |
+| `KeywordGroup.colorDark` | `src/settings.ts` | property | `14` |
+| `OccuraPlugin.updateHighlightStyle` | `main.ts` | method | `233` |
+| `keywordColorStyle` | `src/keywordColors.ts` | function | `8` |
+| `OccuraPluginSettingTab.addLabeledColorInput` | `src/settings.ts` | method | `255` |
+
 ## Implementation Commit
 
 - https://github.com/Krusty84/obsidian-occura-plugin/commit/d5a139a3e5e32eeed30e36c2c4fbf385d170fac6

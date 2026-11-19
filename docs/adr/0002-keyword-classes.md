@@ -29,6 +29,14 @@ Users can add a selected word to an existing class from the editor menu.
 
 Store each class in `keywordGroups`. Give each class a stable `id`.
 
+## Related Symbols
+
+| Symbol | File | Type | Lines |
+|---|---|---|---|
+| `KeywordGroup` | `src/settings.ts` | interface | `10` |
+| `OccuraPluginSettings.keywordGroups` | `src/settings.ts` | property | `34` |
+| `registerWordClassesEditorMenu` | `src/wordClasses.ts` | function | `74` |
+
 ## Implementation Commit
 
 - https://github.com/Krusty84/obsidian-occura-plugin/commit/c3ca52642676dae3d9c976735f7de8839ad8ead0

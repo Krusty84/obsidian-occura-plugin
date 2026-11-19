@@ -29,6 +29,16 @@ Occura clears the count when the active pane changes or the user disables highli
 
 Create the status item in `onload`. Check the pane with `isEditorViewActive` or `isReadingViewActive` before publishing the count.
 
+## Related Symbols
+
+| Symbol | File | Type | Lines |
+|---|---|---|---|
+| `OccuraPlugin.onload` | `main.ts` | method | `46` |
+| `OccuraPlugin.isEditorViewActive` | `main.ts` | method | `170` |
+| `OccuraPlugin.isReadingViewActive` | `main.ts` | method | `178` |
+| `OccuraPlugin.setOccurrenceStatus` | `main.ts` | method | `186` |
+| `OccuraPlugin.clearOccurrenceStatus` | `main.ts` | method | `166` |
+
 ## Implementation Commit
 
 - https://github.com/Krusty84/obsidian-occura-plugin/commit/c0b1e50fef0ab5425338ab3dbf855438a5759335

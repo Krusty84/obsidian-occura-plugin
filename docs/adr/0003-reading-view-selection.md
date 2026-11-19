@@ -29,6 +29,16 @@ Tests of native selections on Android and iOS devices are necessary.
 
 Put HTML `mark` elements around matches in permitted text nodes. Cancel pending updates on `pointercancel`. Save selection offsets before changing the DOM. Use the offsets if Occura must restore the selection.
 
+## Related Symbols
+
+| Symbol | File | Type | Lines |
+|---|---|---|---|
+| `ReadingViewOccurrenceControllerImpl.refreshDocuments` | `src/readingViewOccurrences.ts` | method | `95` |
+| `ReadingViewOccurrenceControllerImpl.scheduleSelectionHandling` | `src/readingViewOccurrences.ts` | method | `125` |
+| `captureReadingViewSelection` | `src/readingViewOccurrences.ts` | function | `266` |
+| `applyReadingViewDynamicHighlights` | `src/readingViewOccurrences.ts` | function | `454` |
+| `restoreReadingViewSelection` | `src/readingViewOccurrences.ts` | function | `312` |
+
 ## Implementation Commit
 
 - https://github.com/Krusty84/obsidian-occura-plugin/commit/399d1ba77ec8c0203046914ccafd30ffb3f3fe5c

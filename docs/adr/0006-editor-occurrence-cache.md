@@ -29,6 +29,16 @@ The count stays the same when the user scrolls.
 
 Wait 120 ms after a selection or document change. Reuse the cached matches when the CodeMirror document object, query, and match options are the same.
 
+## Related Symbols
+
+| Symbol | File | Type | Lines |
+|---|---|---|---|
+| `getEditorOccurrenceSnapshot` | `src/editorOccurrences.ts` | function | `113` |
+| `SELECTION_DEBOUNCE_MS` | `src/editorOccurrences.ts` | constant | `47` |
+| `highlightOccurrenceExtension` | `src/editorOccurrences.ts` | function | `195` |
+| `getVisibleMatches` | `src/editorOccurrences.ts` | function | `174` |
+| `navigateOccurrence` | `src/occurrenceNavigation.ts` | function | `71` |
+
 ## Implementation Commit
 
 - https://github.com/Krusty84/obsidian-occura-plugin/commit/c0b1e50fef0ab5425338ab3dbf855438a5759335

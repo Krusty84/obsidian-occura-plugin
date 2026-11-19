@@ -31,6 +31,12 @@ Users assign Occura shortcuts in Obsidian's Hotkeys settings.
 
 Remove the document click handler and the window `keydown` listener. Keep the `addCommand` registrations.
 
+## Related Symbols
+
+| Symbol | File | Type | Lines |
+|---|---|---|---|
+| `OccuraPlugin.onload` | `main.ts` | method | `46` |
+
 ## Implementation Commit
 
 - https://github.com/Krusty84/obsidian-occura-plugin/commit/14885620b79957954f786335376d3e113868f3a8

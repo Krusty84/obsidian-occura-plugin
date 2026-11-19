@@ -29,6 +29,14 @@ The command reports the number of changes.
 
 Use `planMarkdownMutation` to identify protected ranges such as frontmatter, code, and links. Pass the planned changes to `editor.transaction`.
 
+## Related Symbols
+
+| Symbol | File | Type | Lines |
+|---|---|---|---|
+| `planMarkdownMutation` | `src/markdownMutations.ts` | function | `510` |
+| `getBaseProtectedRanges` | `src/markdownMutations.ts` | function | `402` |
+| `runMarkdownMutationCommand` | `src/markdownMutations.ts` | function | `533` |
+
 ## Implementation Commit
 
 - https://github.com/Krusty84/obsidian-occura-plugin/commit/dd95f58cf6c2bdfdb6508d760263847a70dcc764

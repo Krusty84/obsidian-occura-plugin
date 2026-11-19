@@ -29,6 +29,12 @@ The CI job stops with an error if there is a version mismatch. A missing or empt
 
 Run `npm ci` on Node.js 20. Run `validate-release.mjs` after the production build.
 
+## Related Symbols
+
+| Symbol | File | Type | Lines |
+|---|---|---|---|
+| `fail` | `validate-release.mjs` | function | `7` |
+
 ## Implementation Commit
 
 - https://github.com/Krusty84/obsidian-occura-plugin/commit/d96ec0f2ea8529ca7ba6fe13a8e0c988083aa729

@@ -29,6 +29,15 @@ Selection highlights can match parts of words in the editor and Reading View. Ke
 
 `findMatches` returns text ranges for highlights, navigation, and Markdown commands. It accepts case sensitivity, boundary, and minimum length options.
 
+## Related Symbols
+
+| Symbol | File | Type | Lines |
+|---|---|---|---|
+| `findMatches` | `src/matching.ts` | function | `77` |
+| `MatchOptions` | `src/matching.ts` | interface | `6` |
+| `escapeRegex` | `src/matching.ts` | function | `19` |
+| `hasWholeWordBoundaries` | `src/matching.ts` | function | `54` |
+
 ## Implementation Commit
 
 - https://github.com/Krusty84/obsidian-occura-plugin/commit/244e5ca0c1ac34b56ba3fde5b368d57ee0b72f1c

@@ -29,6 +29,13 @@ Occura keeps valid keyword classes. The default minimum selection length is two 
 
 Call `migrateSettings` in `loadSettings`. Save the result when `changed` is true.
 
+## Related Symbols
+
+| Symbol | File | Type | Lines |
+|---|---|---|---|
+| `OccuraPlugin.loadSettings` | `main.ts` | method | `145` |
+| `migrateSettings` | `src/settingsMigration.ts` | function | `72` |
+
 ## Implementation Commit
 
 - https://github.com/Krusty84/obsidian-occura-plugin/commit/244e5ca0c1ac34b56ba3fde5b368d57ee0b72f1c
