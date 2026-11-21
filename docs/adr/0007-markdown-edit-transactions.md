@@ -33,9 +33,9 @@ Use `planMarkdownMutation` to identify protected ranges such as frontmatter, cod
 
 | Symbol | File | Type | Lines |
 |---|---|---|---|
-| `planMarkdownMutation` | `src/markdownMutations.ts` | function | [510](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/markdownMutations.ts#L510) |
-| `getBaseProtectedRanges` | `src/markdownMutations.ts` | function | [402](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/markdownMutations.ts#L402) |
-| `runMarkdownMutationCommand` | `src/markdownMutations.ts` | function | [533](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/markdownMutations.ts#L533) |
+| `planMarkdownMutation` | `src/markdownMutations.ts` | function | [src/markdownMutations.ts:510](../../src/markdownMutations.ts#L510) |
+| `getBaseProtectedRanges` | `src/markdownMutations.ts` | function | [src/markdownMutations.ts:402](../../src/markdownMutations.ts#L402) |
+| `runMarkdownMutationCommand` | `src/markdownMutations.ts` | function | [src/markdownMutations.ts:533](../../src/markdownMutations.ts#L533) |
 
 ## Implementation Commit
 

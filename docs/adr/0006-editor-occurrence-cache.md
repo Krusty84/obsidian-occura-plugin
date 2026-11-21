@@ -33,11 +33,11 @@ Wait 120 ms after a selection or document change. Reuse the cached matches when 
 
 | Symbol | File | Type | Lines |
 |---|---|---|---|
-| `getEditorOccurrenceSnapshot` | `src/editorOccurrences.ts` | function | [113](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/editorOccurrences.ts#L113) |
-| `SELECTION_DEBOUNCE_MS` | `src/editorOccurrences.ts` | constant | [47](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/editorOccurrences.ts#L47) |
-| `highlightOccurrenceExtension` | `src/editorOccurrences.ts` | function | [195](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/editorOccurrences.ts#L195) |
-| `getVisibleMatches` | `src/editorOccurrences.ts` | function | [174](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/editorOccurrences.ts#L174) |
-| `navigateOccurrence` | `src/occurrenceNavigation.ts` | function | [71](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/occurrenceNavigation.ts#L71) |
+| `getEditorOccurrenceSnapshot` | `src/editorOccurrences.ts` | function | [src/editorOccurrences.ts:113](../../src/editorOccurrences.ts#L113) |
+| `SELECTION_DEBOUNCE_MS` | `src/editorOccurrences.ts` | constant | [src/editorOccurrences.ts:47](../../src/editorOccurrences.ts#L47) |
+| `highlightOccurrenceExtension` | `src/editorOccurrences.ts` | function | [src/editorOccurrences.ts:195](../../src/editorOccurrences.ts#L195) |
+| `getVisibleMatches` | `src/editorOccurrences.ts` | function | [src/editorOccurrences.ts:174](../../src/editorOccurrences.ts#L174) |
+| `navigateOccurrence` | `src/occurrenceNavigation.ts` | function | [src/occurrenceNavigation.ts:71](../../src/occurrenceNavigation.ts#L71) |
 
 ## Implementation Commit
 

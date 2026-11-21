@@ -33,11 +33,11 @@ Create the status item in `onload`. Check the pane with `isEditorViewActive` or 
 
 | Symbol | File | Type | Lines |
 |---|---|---|---|
-| `OccuraPlugin.onload` | `main.ts` | method | [46](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/main.ts#L46) |
-| `OccuraPlugin.isEditorViewActive` | `main.ts` | method | [170](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/main.ts#L170) |
-| `OccuraPlugin.isReadingViewActive` | `main.ts` | method | [178](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/main.ts#L178) |
-| `OccuraPlugin.setOccurrenceStatus` | `main.ts` | method | [186](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/main.ts#L186) |
-| `OccuraPlugin.clearOccurrenceStatus` | `main.ts` | method | [166](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/main.ts#L166) |
+| `OccuraPlugin.onload` | `main.ts` | method | [main.ts:46](../../main.ts#L46) |
+| `OccuraPlugin.isEditorViewActive` | `main.ts` | method | [main.ts:170](../../main.ts#L170) |
+| `OccuraPlugin.isReadingViewActive` | `main.ts` | method | [main.ts:178](../../main.ts#L178) |
+| `OccuraPlugin.setOccurrenceStatus` | `main.ts` | method | [main.ts:186](../../main.ts#L186) |
+| `OccuraPlugin.clearOccurrenceStatus` | `main.ts` | method | [main.ts:166](../../main.ts#L166) |
 
 ## Implementation Commit
 

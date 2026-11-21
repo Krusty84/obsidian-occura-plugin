@@ -33,10 +33,10 @@ Selection highlights can match parts of words in the editor and Reading View. Ke
 
 | Symbol | File | Type | Lines |
 |---|---|---|---|
-| `findMatches` | `src/matching.ts` | function | [77](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/matching.ts#L77) |
-| `MatchOptions` | `src/matching.ts` | interface | [6](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/matching.ts#L6) |
-| `escapeRegex` | `src/matching.ts` | function | [19](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/matching.ts#L19) |
-| `hasWholeWordBoundaries` | `src/matching.ts` | function | [54](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/matching.ts#L54) |
+| `findMatches` | `src/matching.ts` | function | [src/matching.ts:77](../../src/matching.ts#L77) |
+| `MatchOptions` | `src/matching.ts` | interface | [src/matching.ts:6](../../src/matching.ts#L6) |
+| `escapeRegex` | `src/matching.ts` | function | [src/matching.ts:19](../../src/matching.ts#L19) |
+| `hasWholeWordBoundaries` | `src/matching.ts` | function | [src/matching.ts:54](../../src/matching.ts#L54) |
 
 ## Implementation Commit
 

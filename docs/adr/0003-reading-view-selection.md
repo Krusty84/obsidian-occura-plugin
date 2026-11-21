@@ -33,11 +33,11 @@ Put HTML `mark` elements around matches in permitted text nodes. Cancel pending 
 
 | Symbol | File | Type | Lines |
 |---|---|---|---|
-| `ReadingViewOccurrenceControllerImpl.refreshDocuments` | `src/readingViewOccurrences.ts` | method | [95](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/readingViewOccurrences.ts#L95) |
-| `ReadingViewOccurrenceControllerImpl.scheduleSelectionHandling` | `src/readingViewOccurrences.ts` | method | [125](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/readingViewOccurrences.ts#L125) |
-| `captureReadingViewSelection` | `src/readingViewOccurrences.ts` | function | [266](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/readingViewOccurrences.ts#L266) |
-| `applyReadingViewDynamicHighlights` | `src/readingViewOccurrences.ts` | function | [454](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/readingViewOccurrences.ts#L454) |
-| `restoreReadingViewSelection` | `src/readingViewOccurrences.ts` | function | [312](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/readingViewOccurrences.ts#L312) |
+| `ReadingViewOccurrenceControllerImpl.refreshDocuments` | `src/readingViewOccurrences.ts` | method | [src/readingViewOccurrences.ts:95](../../src/readingViewOccurrences.ts#L95) |
+| `ReadingViewOccurrenceControllerImpl.scheduleSelectionHandling` | `src/readingViewOccurrences.ts` | method | [src/readingViewOccurrences.ts:125](../../src/readingViewOccurrences.ts#L125) |
+| `captureReadingViewSelection` | `src/readingViewOccurrences.ts` | function | [src/readingViewOccurrences.ts:266](../../src/readingViewOccurrences.ts#L266) |
+| `applyReadingViewDynamicHighlights` | `src/readingViewOccurrences.ts` | function | [src/readingViewOccurrences.ts:454](../../src/readingViewOccurrences.ts#L454) |
+| `restoreReadingViewSelection` | `src/readingViewOccurrences.ts` | function | [src/readingViewOccurrences.ts:312](../../src/readingViewOccurrences.ts#L312) |
 
 ## Implementation Commit
 

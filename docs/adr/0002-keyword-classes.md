@@ -33,9 +33,9 @@ Store each class in `keywordGroups`. Give each class a stable `id`.
 
 | Symbol | File | Type | Lines |
 |---|---|---|---|
-| `KeywordGroup` | `src/settings.ts` | interface | [10](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/settings.ts#L10) |
-| `OccuraPluginSettings.keywordGroups` | `src/settings.ts` | property | [34](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/settings.ts#L34) |
-| `registerWordClassesEditorMenu` | `src/wordClasses.ts` | function | [74](https://github.com/Krusty84/obsidian-occura-plugin/blob/5e4d849cb25d7c687a4842aa15cf8a983dbfe622/src/wordClasses.ts#L74) |
+| `KeywordGroup` | `src/settings.ts` | interface | [src/settings.ts:10](../../src/settings.ts#L10) |
+| `OccuraPluginSettings.keywordGroups` | `src/settings.ts` | property | [src/settings.ts:34](../../src/settings.ts#L34) |
+| `registerWordClassesEditorMenu` | `src/wordClasses.ts` | function | [src/wordClasses.ts:74](../../src/wordClasses.ts#L74) |
 
 ## Implementation Commit
 
